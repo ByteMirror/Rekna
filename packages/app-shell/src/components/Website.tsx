@@ -854,6 +854,10 @@ function detectDownloadFamily(): DownloadFamily {
     return "linux";
   }
 
+  if (platformText.includes("win")) {
+    return "windows";
+  }
+
   return "unknown";
 }
 
@@ -891,6 +895,10 @@ function getDefaultDownloadVariant(
   family: DownloadFamily,
   downloadVariants: DownloadVariant[]
 ) {
+  if (family === "windows") {
+    return downloadVariants.find((variant) => variant.id === "windows-x64")!;
+  }
+
   if (family === "linux") {
     return downloadVariants.find((variant) => variant.id === "linux-x64")!;
   }
@@ -905,6 +913,10 @@ function getDownloadFamilyLabel(family: DownloadFamily) {
 
   if (family === "linux") {
     return "Linux";
+  }
+
+  if (family === "windows") {
+    return "Windows";
   }
 
   return "Recommended";

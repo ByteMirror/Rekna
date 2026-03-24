@@ -55,6 +55,11 @@ const legacyReleaseAssets = [
       "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-linux-x64-Rekna-Setup.tar.gz",
     name: "stable-linux-x64-Rekna-Setup.tar.gz",
   },
+  {
+    browser_download_url:
+      "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-win-x64-Rekna-Setup.zip",
+    name: "stable-win-x64-Rekna-Setup.zip",
+  },
 ];
 
 afterEach(() => {
@@ -127,13 +132,10 @@ describe("Website", () => {
       );
       expect(await findByTestId("download-option-linux-x64")).toBeTruthy();
       expect(
-        window.document.querySelector('[data-testid="download-option-macos-x64"]')
-      ).toBeNull();
-      expect(
-        window.document.querySelector(
-          '[data-testid="download-option-windows-x64"]'
-        )
-      ).toBeNull();
+        (await findByTestId("download-option-windows-x64")).getAttribute("href")
+      ).toBe(
+        "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-win-x64-Rekna-Setup.zip"
+      );
     } finally {
       restoreNavigatorSnapshot();
       cleanup();
@@ -160,6 +162,11 @@ describe("Website", () => {
         browser_download_url:
           "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-linux-x64.tar.gz",
         name: "Rekna-0.1.3-linux-x64.tar.gz",
+      },
+      {
+        browser_download_url:
+          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-windows-x64.zip",
+        name: "Rekna-0.1.3-windows-x64.zip",
       },
     ]);
     setNavigatorSnapshot({
@@ -193,6 +200,11 @@ describe("Website", () => {
         (await findByTestId("download-option-linux-x64")).getAttribute("href")
       ).toBe(
         "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-linux-x64.tar.gz"
+      );
+      expect(
+        (await findByTestId("download-option-windows-x64")).getAttribute("href")
+      ).toBe(
+        "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-windows-x64.zip"
       );
     } finally {
       restoreNavigatorSnapshot();
@@ -498,14 +510,16 @@ describe("Website", () => {
       });
       expect(window.location.pathname).toBe("/");
       expect(window.location.hash).toBe("#download");
-      expect(getByTestId("download-cta").textContent).toContain("Download for");
+      expect(getByTestId("download-cta").textContent).toContain(
+        "Download for Windows (x64)"
+      );
       await waitFor(() => {
         expect(getByTestId("download-cta").getAttribute("href")).toBe(
-          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-macos-arm64-Rekna.dmg"
+          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-win-x64-Rekna-Setup.zip"
         );
       });
       expect(getByTestId("detected-download-platform").textContent).toContain(
-        "Default build selected"
+        "Windows detected"
       );
     } finally {
       restoreNavigatorSnapshot();
