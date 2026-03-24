@@ -1,3 +1,4 @@
+export * from "./completion-info-layout";
 export * from "./desktop-release";
 export * from "./fuzzy-search";
 export * from "./rpc";

@@ -34,10 +34,12 @@ import {
   readWorkspaceSelection,
   writeWorkspaceSelection,
 } from "./workspace-selection";
+import { shouldUseNativeCompletionOverlay } from "./native-completion-overlay";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
 const NATIVE_COMPLETION_OVERLAY_ENABLED =
+  shouldUseNativeCompletionOverlay(process.platform) &&
   process.env.LINEA_DISABLE_NATIVE_COMPLETION_OVERLAY !== "1";
 const DEFAULT_DESKTOP_SETTINGS: DesktopSettings = {
   keepRunningAfterWindowClose: false,

@@ -62,15 +62,19 @@
   --card-foreground: #dddddd;
   --popover: #272927;
   --popover-foreground: #dddddd;
-  --primary: #51938B;
+  --primary: #51938b;
   --primary-foreground: #000000;
   --secondary: #2c2f2c;
   --secondary-foreground: #dddddd;
   --muted-ui: #2c2f2c;
   --muted-foreground: #a7aba7;
-  --accent: #51938B;
+  --accent: #51938b;
   --accent-foreground: #000000;
-  --menu-highlight: color-mix(in oklab, var(--foreground) 10%, var(--popover) 90%);
+  --menu-highlight: color-mix(
+    in oklab,
+    var(--foreground) 10%,
+    var(--popover) 90%
+  );
   --menu-highlight-foreground: var(--popover-foreground);
   --menu-highlight-muted-foreground: color-mix(
     in oklab,
@@ -125,15 +129,19 @@
   --card-foreground: #312c25;
   --popover: #fcf7ef;
   --popover-foreground: #312c25;
-  --primary: #3D6F68;
-  --primary-foreground: #FCF7EF;
+  --primary: #3d6f68;
+  --primary-foreground: #fcf7ef;
   --secondary: #e5dccf;
   --secondary-foreground: #312c25;
   --muted-ui: #ebe2d6;
   --muted-foreground: #73695d;
-  --accent: #3D6F68;
-  --accent-foreground: #FCF7EF;
-  --menu-highlight: color-mix(in oklab, var(--foreground) 9%, var(--popover) 91%);
+  --accent: #3d6f68;
+  --accent-foreground: #fcf7ef;
+  --menu-highlight: color-mix(
+    in oklab,
+    var(--foreground) 9%,
+    var(--popover) 91%
+  );
   --menu-highlight-foreground: var(--popover-foreground);
   --menu-highlight-muted-foreground: color-mix(
     in oklab,
@@ -153,8 +161,8 @@
   );
   --border: #d3c8b8;
   --input: #d3c8b8;
-  --menu-shadow: 0 12px 32px rgba(49, 44, 37, 0.14),
-    0 2px 6px rgba(49, 44, 37, 0.08);
+  --menu-shadow: 0 12px 32px rgba(49, 44, 37, 0.14), 0 2px 6px
+    rgba(49, 44, 37, 0.08);
   --ring: #647689;
 }
 
@@ -352,18 +360,27 @@ input {
   background: color-mix(in oklab, var(--popover) 95%, black 5%);
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) + 2px);
+  box-sizing: border-box;
   box-shadow: var(--menu-shadow);
   color: var(--popover-foreground);
   margin-left: 0.625rem;
-  max-width: min(300px, 32vw);
-  min-width: 220px;
+  max-width: min(300px, calc(100vw - 32px));
+  min-width: 0;
   overflow: auto;
   padding: 0;
+  white-space: normal;
+  width: max-content;
 }
 
 .cm-completionInfo.cm-completionInfo-left {
   margin-left: 0;
   margin-right: 0.625rem;
+}
+
+.cm-completionInfo.cm-completionInfo-left-narrow,
+.cm-completionInfo.cm-completionInfo-right-narrow {
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .linea-completion-info-panel {
@@ -373,7 +390,10 @@ input {
 .linea-completion-info {
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 0.875rem;
+  word-break: break-word;
 }
 
 .linea-completion-info__title {
@@ -389,6 +409,8 @@ input {
   font-size: 0.75rem;
   line-height: 1.45;
   margin: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .linea-completion-overlay-root {
@@ -553,6 +575,14 @@ input {
   background: color-mix(in oklab, currentColor 10%, transparent);
   box-shadow: inset 0 0 0 0.5px
     color-mix(in oklab, currentColor 18%, transparent);
+  transition-duration: 0ms;
+}
+
+.linea-result-button:active,
+.linea-result-button[data-state="open"] {
+  background: color-mix(in oklab, currentColor 16%, transparent);
+  box-shadow: inset 0 0 0 0.5px
+    color-mix(in oklab, currentColor 28%, transparent);
   transition-duration: 0ms;
 }
 

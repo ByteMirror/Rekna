@@ -16,7 +16,7 @@ import { useEffect, useState } from "react";
 
 const sheetEditorSource = readFileSync(
   resolve(import.meta.dir, "./SheetEditor.tsx"),
-  "utf8",
+  "utf8"
 );
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {
@@ -97,7 +97,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const content = container.querySelector(".cm-content");
@@ -151,7 +151,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const content = container.querySelector(".cm-content");
@@ -207,7 +207,7 @@ describe("SheetEditor", () => {
         <LiveSheetHarness initialValue={initialValue} />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const content = container.querySelector(".cm-content");
@@ -266,11 +266,11 @@ describe("SheetEditor", () => {
             "",
             "var2 + var4 + sum",
             "tail = 7",
-          ].join("\n"),
+          ].join("\n")
         );
         expect(getByRole("button", { name: "Copy result 30" })).toBeTruthy();
         expect(getAllByRole("button", { name: "Copy result 61" })).toHaveLength(
-          1,
+          1
         );
       });
     } finally {
@@ -292,7 +292,7 @@ describe("SheetEditor", () => {
         <LiveSheetHarness initialValue={initialValue} />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const content = container.querySelector(".cm-content");
@@ -345,11 +345,11 @@ describe("SheetEditor", () => {
             "",
             "var2 + var4 + sum",
             "",
-          ].join("\n"),
+          ].join("\n")
         );
         expect(getByRole("button", { name: "Copy result 30" })).toBeTruthy();
         expect(getAllByRole("button", { name: "Copy result 61" })).toHaveLength(
-          1,
+          1
         );
       });
     } finally {
@@ -403,7 +403,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const copyButton = getByRole("button", { name: "Copy result 20" });
@@ -448,7 +448,7 @@ describe("SheetEditor", () => {
           raw: "Fee: 4GBP in Euro",
         },
       ];
-      const { getByRole } = render(
+      const { getByRole, getByTestId } = render(
         <SheetEditor
           documentId="sheet-1"
           lines={lines}
@@ -457,13 +457,16 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const detailButton = getByRole("button", {
         name: "Show full precision for 4.62 EUR",
       });
 
+      expect(getByTestId("sheet-layout").getAttribute("style")).toContain(
+        "grid-template-columns: minmax(0, 1fr) calc(13ch + 5rem);"
+      );
       expect(detailButton.textContent).toBe("≈");
       fireEvent.click(detailButton);
 
@@ -491,7 +494,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       await waitFor(() => {
@@ -525,7 +528,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       await waitFor(() => {
@@ -556,7 +559,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       await waitFor(() => {
@@ -581,18 +584,18 @@ describe("SheetEditor", () => {
     expect(sheetEditorSource).toContain("left 90ms cubic-bezier(0.2, 0, 0, 1)");
     expect(sheetEditorSource).toContain("top 90ms cubic-bezier(0.2, 0, 0, 1)");
     expect(sheetEditorSource).toContain(
-      "height 90ms cubic-bezier(0.2, 0, 0, 1)",
+      "height 90ms cubic-bezier(0.2, 0, 0, 1)"
     );
     expect(sheetEditorSource).toContain("opacity 120ms ease-in-out");
     expect(sheetEditorSource).toContain(
-      'animation: "linea-caret-blink 1.1s ease-in-out infinite"',
+      'animation: "linea-caret-blink 1.1s ease-in-out infinite"'
     );
   });
 
   test("keeps long editor lines on one line and exposes a horizontal scroll area", async () => {
     try {
       const evaluation = await evaluateSheet(
-        "this is a very long line that should wrap instead of overflowing horizontally",
+        "this is a very long line that should wrap instead of overflowing horizontally"
       );
       const { container, getByTestId } = render(
         <SheetEditor
@@ -603,14 +606,14 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       await waitFor(() => {
         const content = container.querySelector(".cm-content");
         const horizontalScroll = getByTestId("sheet-horizontal-scroll");
         const viewportElement = horizontalScroll.querySelector(
-          '[data-slot="scroll-area-viewport"]',
+          '[data-slot="scroll-area-viewport"]'
         ) as HTMLElement | null;
 
         if (!(content instanceof window.HTMLElement)) {
@@ -636,7 +639,7 @@ describe("SheetEditor", () => {
   test("uses a single outer scroller for the whole sheet", async () => {
     try {
       const evaluation = await evaluateSheet(
-        Array.from({ length: 40 }, (_, index) => `${index + 1}`).join("\n"),
+        Array.from({ length: 40 }, (_, index) => `${index + 1}`).join("\n")
       );
       const { container, getByTestId } = render(
         <SheetEditor
@@ -644,12 +647,12 @@ describe("SheetEditor", () => {
           lines={evaluation.lines}
           onChange={() => {}}
           value={Array.from({ length: 40 }, (_, index) => `${index + 1}`).join(
-            "\n",
+            "\n"
           )}
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       await waitFor(() => {
@@ -678,7 +681,7 @@ describe("SheetEditor", () => {
   test("shows a right-side overflow shadow when editor content can scroll horizontally", async () => {
     try {
       const evaluation = await evaluateSheet(
-        "this is a very long line that should overflow horizontally",
+        "this is a very long line that should overflow horizontally"
       );
       const { getByTestId } = render(
         <SheetEditor
@@ -689,14 +692,14 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const horizontalScroll = await waitFor(
-        () => getByTestId("sheet-horizontal-scroll") as HTMLDivElement,
+        () => getByTestId("sheet-horizontal-scroll") as HTMLDivElement
       );
       const viewportElement = horizontalScroll.querySelector(
-        '[data-slot="scroll-area-viewport"]',
+        '[data-slot="scroll-area-viewport"]'
       ) as HTMLElement | null;
       const results = getByTestId("sheet-results");
 
@@ -738,7 +741,7 @@ describe("SheetEditor", () => {
 
     try {
       const evaluation = await evaluateSheet(
-        Array.from({ length: 40 }, (_, index) => `${index + 1}`).join("\n"),
+        Array.from({ length: 40 }, (_, index) => `${index + 1}`).join("\n")
       );
       const { getByTestId } = render(
         <SheetEditor
@@ -747,12 +750,12 @@ describe("SheetEditor", () => {
           onChange={() => {}}
           onScrollStateChange={onScrollStateChange}
           value={Array.from({ length: 40 }, (_, index) => `${index + 1}`).join(
-            "\n",
+            "\n"
           )}
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       await waitFor(() => {
@@ -790,7 +793,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: appRoot,
-        },
+        }
       );
 
       const editor = container.querySelector(".cm-editor");
@@ -809,7 +812,7 @@ describe("SheetEditor", () => {
 
       await waitFor(() => {
         const tooltip = window.document.querySelector(
-          ".cm-tooltip.cm-tooltip-autocomplete",
+          ".cm-tooltip.cm-tooltip-autocomplete"
         );
 
         if (!(tooltip instanceof window.HTMLElement)) {
@@ -837,7 +840,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const editor = container.querySelector(".cm-editor");
@@ -860,7 +863,7 @@ describe("SheetEditor", () => {
 
       await waitFor(() => {
         const tooltip = window.document.querySelector(
-          ".cm-tooltip.cm-tooltip-autocomplete",
+          ".cm-tooltip.cm-tooltip-autocomplete"
         );
 
         if (!(tooltip instanceof window.HTMLElement)) {
@@ -887,7 +890,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const editor = container.querySelector(".cm-editor");
@@ -924,7 +927,7 @@ describe("SheetEditor", () => {
 
       await waitFor(() => {
         expect(
-          currentCompletions(view.state).map((completion) => completion.label),
+          currentCompletions(view.state).map((completion) => completion.label)
         ).toEqual(["#berlin", "#travel"]);
       });
     } finally {
@@ -945,7 +948,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const editor = container.querySelector(".cm-editor");
@@ -982,7 +985,7 @@ describe("SheetEditor", () => {
 
       await waitFor(() => {
         expect(
-          currentCompletions(view.state).map((completion) => completion.label),
+          currentCompletions(view.state).map((completion) => completion.label)
         ).toEqual(["#berlin", "#travel"]);
       });
 
@@ -1002,7 +1005,7 @@ describe("SheetEditor", () => {
       await waitFor(() => {
         expect(currentCompletions(view.state)).toHaveLength(0);
         expect(
-          window.document.querySelector(".cm-tooltip.cm-tooltip-autocomplete"),
+          window.document.querySelector(".cm-tooltip.cm-tooltip-autocomplete")
         ).toBeNull();
       });
 
@@ -1022,7 +1025,7 @@ describe("SheetEditor", () => {
       await waitFor(() => {
         expect(currentCompletions(view.state)).toHaveLength(0);
         expect(
-          window.document.querySelector(".cm-tooltip.cm-tooltip-autocomplete"),
+          window.document.querySelector(".cm-tooltip.cm-tooltip-autocomplete")
         ).toBeNull();
       });
     } finally {
@@ -1050,7 +1053,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const content = container.querySelector(".cm-content");
@@ -1071,12 +1074,12 @@ describe("SheetEditor", () => {
 
       expect(searchEventCount).toBe(1);
       expect(
-        window.document.querySelector('input[placeholder="Find"]'),
+        window.document.querySelector('input[placeholder="Find"]')
       ).toBeNull();
     } finally {
       window.removeEventListener(
         "linea:open-sheet-search",
-        handleOpenSheetSearch,
+        handleOpenSheetSearch
       );
       cleanup();
       window.document.body.innerHTML = "";
@@ -1098,7 +1101,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const editor = container.querySelector(".cm-editor");
@@ -1157,7 +1160,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const editor = container.querySelector(".cm-editor");
@@ -1194,10 +1197,10 @@ describe("SheetEditor", () => {
 
       await waitFor(() => {
         expect(view.state.doc.toString()).toBe(
-          ["// first = 1", "// second = 2", "// third = 3"].join("\n"),
+          ["// first = 1", "// second = 2", "// third = 3"].join("\n")
         );
         expect(onChange).toHaveBeenLastCalledWith(
-          ["// first = 1", "// second = 2", "// third = 3"].join("\n"),
+          ["// first = 1", "// second = 2", "// third = 3"].join("\n")
         );
       });
     } finally {
@@ -1221,7 +1224,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const editor = container.querySelector(".cm-editor");
@@ -1283,7 +1286,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const editor = container.querySelector(".cm-editor");
@@ -1313,7 +1316,7 @@ describe("SheetEditor", () => {
           metaKey: true,
           shiftKey: true,
         }),
-        "editor",
+        "editor"
       );
 
       expect(handled).toBe(false);
@@ -1339,7 +1342,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const editor = container.querySelector(".cm-editor");
@@ -1382,7 +1385,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const editor = container.querySelector(".cm-editor");
@@ -1413,7 +1416,7 @@ describe("SheetEditor", () => {
 
       await waitFor(() => {
         const tooltip = window.document.querySelector(
-          ".cm-tooltip.cm-tooltip-autocomplete",
+          ".cm-tooltip.cm-tooltip-autocomplete"
         );
 
         if (!(tooltip instanceof window.HTMLElement)) {
@@ -1424,7 +1427,7 @@ describe("SheetEditor", () => {
       });
 
       const objectCompletion = currentCompletions(view.state).find(
-        (completion) => completion.label === "subscriptions",
+        (completion) => completion.label === "subscriptions"
       );
 
       if (!objectCompletion) {
@@ -1442,7 +1445,7 @@ describe("SheetEditor", () => {
           view,
           objectCompletion,
           value.length - "subscriptions".length,
-          value.length,
+          value.length
         );
       });
 
@@ -1454,11 +1457,11 @@ describe("SheetEditor", () => {
             "  spotify = 12",
             "}",
             "subscriptions.",
-          ].join("\n"),
+          ].join("\n")
         );
 
         const tooltip = window.document.querySelector(
-          ".cm-tooltip.cm-tooltip-autocomplete",
+          ".cm-tooltip.cm-tooltip-autocomplete"
         );
 
         if (!(tooltip instanceof window.HTMLElement)) {
@@ -1477,7 +1480,7 @@ describe("SheetEditor", () => {
   test("keeps the results column fixed for long calculated output", async () => {
     try {
       const evaluation = await evaluateSheet(
-        "12345678901234567890 + 98765432109876543210",
+        "12345678901234567890 + 98765432109876543210"
       );
       const { getByTestId } = render(
         <SheetEditor
@@ -1488,13 +1491,13 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const layout = getByTestId("sheet-layout");
 
       expect(layout.getAttribute("style")).toContain(
-        "grid-template-columns: minmax(0, 1fr) calc(13ch + 1.75rem);",
+        "grid-template-columns: minmax(0, 1fr) calc(13ch + 3rem);"
       );
     } finally {
       cleanup();
@@ -1522,11 +1525,11 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       expect(getByTestId("sheet-layout").getAttribute("style")).toContain(
-        "grid-template-columns: minmax(0, 1fr) calc(13ch + 1.75rem);",
+        "grid-template-columns: minmax(0, 1fr) calc(13ch + 3rem);"
       );
     } finally {
       cleanup();
@@ -1554,11 +1557,11 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       expect(getByTestId("sheet-layout").getAttribute("style")).toContain(
-        "grid-template-columns: minmax(0, 1fr) calc(13ch + 1.75rem);",
+        "grid-template-columns: minmax(0, 1fr) calc(13ch + 3rem);"
       );
     } finally {
       cleanup();
@@ -1599,7 +1602,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const button = getByRole("button", {
@@ -1616,7 +1619,7 @@ describe("SheetEditor", () => {
       const slotStyle = slot.getAttribute("style") ?? "";
 
       expect(button.className).toContain("text-right");
-      expect(buttonStyle).toContain("padding-right: 0.25rem;");
+      expect(buttonStyle).not.toContain("padding-right");
       expect(buttonStyle).not.toContain("width: 13ch;");
       expect(slot.className).toContain("justify-end");
       expect(slotStyle).toContain("width: 13ch;");
@@ -1652,7 +1655,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const results = getByTestId("sheet-results");
@@ -1660,6 +1663,46 @@ describe("SheetEditor", () => {
 
       expect(style).toContain("width: 100%;");
       expect(style).toContain("box-sizing: border-box;");
+    } finally {
+      cleanup();
+      window.document.body.innerHTML = "";
+    }
+  });
+
+  test("uses matching left and right padding for the results surface", () => {
+    try {
+      const lines: SheetEditorLine[] = [
+        {
+          displayValue: "1785 USD",
+          expression: "retainer",
+          kind: "expression",
+          label: "retainer",
+          raw: "retainer",
+        },
+      ];
+      const { getByTestId } = render(
+        <SheetEditor
+          documentId="sheet-1"
+          lines={lines}
+          onChange={() => {}}
+          value="retainer"
+        />,
+        {
+          container: window.document.body,
+        }
+      );
+
+      const layoutStyle =
+        getByTestId("sheet-layout").getAttribute("style") ?? "";
+      const results = getByTestId("sheet-results");
+
+      expect(layoutStyle).toContain(
+        "grid-template-columns: minmax(0, 1fr) calc(13ch + 3rem);"
+      );
+      expect(results.className).toContain("pl-6");
+      expect(results.className).toContain("pr-6");
+      expect(results.className).toContain("max-[960px]:pl-4");
+      expect(results.className).toContain("max-[960px]:pr-4");
     } finally {
       cleanup();
       window.document.body.innerHTML = "";
@@ -1693,7 +1736,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       expect(getAllByLabelText("Directive resolved")).toHaveLength(2);
@@ -1734,7 +1777,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       expect(getAllByLabelText("Directive unresolved")).toHaveLength(2);
@@ -1758,7 +1801,7 @@ describe("SheetEditor", () => {
         const nextStyle =
           getByTestId("sheet-layout").getAttribute("style") ?? "";
         expect(nextStyle).toContain(
-          "grid-template-columns: minmax(0, 1fr) calc(13ch + 1.75rem);",
+          "grid-template-columns: minmax(0, 1fr) calc(13ch + 3rem);"
         );
         widenedStyle = nextStyle;
       });
@@ -1767,7 +1810,7 @@ describe("SheetEditor", () => {
 
       await waitFor(() => {
         expect(getByTestId("sheet-layout").getAttribute("style")).toBe(
-          widenedStyle,
+          widenedStyle
         );
       });
     } finally {
@@ -1785,8 +1828,8 @@ describe("SheetEditor", () => {
           { height: 96, top: 156 },
         ],
         3,
-        282,
-      ),
+        282
+      )
     ).toEqual([
       { height: 64, top: 60 },
       { height: 32, top: 124 },
@@ -1807,7 +1850,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const content = container.querySelector(".cm-content");
@@ -1859,7 +1902,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const content = container.querySelector(".cm-content");
@@ -1906,7 +1949,7 @@ describe("SheetEditor", () => {
         />,
         {
           container: window.document.body,
-        },
+        }
       );
 
       const content = container.querySelector(".cm-content");
@@ -1960,7 +2003,7 @@ function createClipboardData(initialData: Record<string, string> = {}) {
 function dispatchClipboardEvent(
   target: HTMLElement,
   type: "copy" | "paste",
-  clipboardData: ReturnType<typeof createClipboardData>,
+  clipboardData: ReturnType<typeof createClipboardData>
 ) {
   const event = new window.Event(type, {
     bubbles: true,
@@ -1976,7 +2019,7 @@ function dispatchClipboardEvent(
 }
 
 function readLineaClipboardPayload(
-  clipboardData: ReturnType<typeof createClipboardData>,
+  clipboardData: ReturnType<typeof createClipboardData>
 ) {
   const payload = clipboardData.getData("application/x-linea-clipboard");
 

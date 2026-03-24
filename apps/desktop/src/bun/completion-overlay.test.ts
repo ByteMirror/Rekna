@@ -255,7 +255,7 @@ describe("CompletionOverlayController", () => {
       },
     });
 
-    expect(setFrame).toHaveBeenLastCalledWith(580, 520, 320, 180);
+    expect(setFrame).toHaveBeenLastCalledWith(570, 520, 330, 180);
   });
 
   test("flips the docs panel to the opposite side when the current side would be cut off", () => {
@@ -315,7 +315,7 @@ describe("CompletionOverlayController", () => {
         infoWidth: 280,
       })
     );
-    expect(setFrame).toHaveBeenLastCalledWith(550, 248, 650, 214);
+    expect(setFrame).toHaveBeenLastCalledWith(550, 248, 650, 244);
   });
 
   test("stacks the docs panel below the list when neither side can fit it", () => {
@@ -376,5 +376,131 @@ describe("CompletionOverlayController", () => {
       })
     );
     expect(setFrame).toHaveBeenLastCalledWith(130, 200, 360, 318);
+  });
+
+  test("reflows to a bottom docs panel when the combined side-by-side width would exceed the display", () => {
+    const setFrame = mock(() => {});
+    const renderCompletionOverlay = mock((_payload: unknown) => {});
+    const mainWindow = {
+      frame: { x: 0, y: 0, width: 620, height: 900 },
+    } as unknown as BrowserWindow;
+    const overlayWindow = {
+      setFrame,
+      webview: {
+        rpc: {
+          send: {
+            renderCompletionOverlay,
+          },
+        },
+      },
+    } as unknown as BrowserWindow;
+    const controller = new CompletionOverlayController(
+      mainWindow,
+      overlayWindow,
+      () =>
+        ({
+          bounds: { x: 0, y: 0, width: 620, height: 900 },
+          id: 1,
+          isPrimary: true,
+          scaleFactor: 1,
+          workArea: { x: 0, y: 0, width: 620, height: 900 },
+        }) satisfies Display
+    );
+
+    controller.handleReady();
+    controller.handleUpdate({
+      visible: true,
+      theme: "dark",
+      items: [
+        {
+          label: "studio.reallyQuiteLongPropertyNameIndeed",
+          detail: "Property",
+          type: "variable",
+        },
+      ],
+      selectedIndex: 0,
+      info: {
+        title: "sum",
+        detail: "Block total",
+        body: "Returns the total of the consecutive evaluated rows directly above this line.",
+      },
+      infoSide: "left",
+      infoWidth: 250,
+      listWidth: 380,
+      frame: {
+        x: 0,
+        y: 120,
+        width: 720,
+        height: 214,
+      },
+    });
+
+    expect(renderCompletionOverlay).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        infoSide: "bottom",
+      })
+    );
+    expect(setFrame).toHaveBeenLastCalledWith(160, 120, 460, 318);
+  });
+
+  test("keeps an above-placement overlay anchored to the caret when native layout makes it shorter", () => {
+    const setFrame = mock(() => {});
+    const renderCompletionOverlay = mock((_payload: unknown) => {});
+    const mainWindow = {
+      frame: { x: 0, y: 0, width: 520, height: 900 },
+    } as unknown as BrowserWindow;
+    const overlayWindow = {
+      setFrame,
+      webview: {
+        rpc: {
+          send: {
+            renderCompletionOverlay,
+          },
+        },
+      },
+    } as unknown as BrowserWindow;
+    const controller = new CompletionOverlayController(
+      mainWindow,
+      overlayWindow,
+      () =>
+        ({
+          bounds: { x: 0, y: 0, width: 1280, height: 900 },
+          id: 1,
+          isPrimary: true,
+          scaleFactor: 1,
+          workArea: { x: 0, y: 0, width: 1280, height: 900 },
+        }) satisfies Display
+    );
+
+    controller.handleReady();
+    controller.handleUpdate({
+      visible: true,
+      theme: "dark",
+      items: [{ label: "sum", detail: "Block total", type: "function" }],
+      selectedIndex: 0,
+      info: {
+        title: "sum",
+        detail: "Block total",
+        body: "Returns the total of the consecutive evaluated rows directly above this line.",
+      },
+      placement: "above",
+      infoSide: "bottom",
+      infoWidth: 280,
+      listWidth: 280,
+      frame: {
+        x: 100,
+        y: 200,
+        width: 360,
+        height: 318,
+      },
+    });
+
+    expect(renderCompletionOverlay).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        infoSide: "right",
+        placement: "above",
+      })
+    );
+    expect(setFrame).toHaveBeenLastCalledWith(100, 274, 650, 244);
   });
 });

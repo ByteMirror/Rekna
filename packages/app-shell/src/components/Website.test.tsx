@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   act,
   cleanup,
@@ -43,6 +43,8 @@ Object.assign(window.HTMLElement.prototype, {
 });
 
 const originalScrollIntoView = window.HTMLElement.prototype.scrollIntoView;
+const originalPause = window.HTMLMediaElement.prototype.pause;
+const originalPlay = window.HTMLMediaElement.prototype.play;
 const originalFetch = globalThis.fetch;
 const legacyReleaseAssets = [
   {
@@ -55,11 +57,6 @@ const legacyReleaseAssets = [
       "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-linux-x64-Rekna-Setup.tar.gz",
     name: "stable-linux-x64-Rekna-Setup.tar.gz",
   },
-  {
-    browser_download_url:
-      "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-win-x64-Rekna-Setup.zip",
-    name: "stable-win-x64-Rekna-Setup.zip",
-  },
 ];
 
 afterEach(() => {
@@ -68,7 +65,32 @@ afterEach(() => {
     value: originalScrollIntoView,
     writable: true,
   });
+  Object.defineProperty(window.HTMLMediaElement.prototype, "pause", {
+    configurable: true,
+    value: originalPause,
+    writable: true,
+  });
+  Object.defineProperty(window.HTMLMediaElement.prototype, "play", {
+    configurable: true,
+    value: originalPlay,
+    writable: true,
+  });
   globalThis.fetch = originalFetch;
+});
+
+beforeEach(() => {
+  Object.defineProperty(window.HTMLMediaElement.prototype, "pause", {
+    configurable: true,
+    value() {},
+    writable: true,
+  });
+  Object.defineProperty(window.HTMLMediaElement.prototype, "play", {
+    configurable: true,
+    value() {
+      return Promise.resolve();
+    },
+    writable: true,
+  });
 });
 
 describe("Website", () => {
@@ -132,10 +154,13 @@ describe("Website", () => {
       );
       expect(await findByTestId("download-option-linux-x64")).toBeTruthy();
       expect(
-        (await findByTestId("download-option-windows-x64")).getAttribute("href")
-      ).toBe(
-        "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-win-x64-Rekna-Setup.zip"
-      );
+        window.document.querySelector('[data-testid="download-option-macos-x64"]')
+      ).toBeNull();
+      expect(
+        window.document.querySelector(
+          '[data-testid="download-option-windows-x64"]'
+        )
+      ).toBeNull();
     } finally {
       restoreNavigatorSnapshot();
       cleanup();
@@ -162,11 +187,6 @@ describe("Website", () => {
         browser_download_url:
           "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-linux-x64.tar.gz",
         name: "Rekna-0.1.3-linux-x64.tar.gz",
-      },
-      {
-        browser_download_url:
-          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-windows-x64.zip",
-        name: "Rekna-0.1.3-windows-x64.zip",
       },
     ]);
     setNavigatorSnapshot({
@@ -200,11 +220,6 @@ describe("Website", () => {
         (await findByTestId("download-option-linux-x64")).getAttribute("href")
       ).toBe(
         "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-linux-x64.tar.gz"
-      );
-      expect(
-        (await findByTestId("download-option-windows-x64")).getAttribute("href")
-      ).toBe(
-        "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-windows-x64.zip"
       );
     } finally {
       restoreNavigatorSnapshot();
@@ -250,6 +265,22 @@ describe("Website", () => {
       const connectedSheetsProgress = getByTestId(
         "feature-tab-progress-connected-sheets"
       );
+      const activeFeatureVideo = getByTestId(
+        "feature-video-plain-text-calculations"
+      ) as HTMLVideoElement;
+      const activeFeatureVideoLayer = getByTestId(
+        "feature-video-layer-plain-text-calculations"
+      );
+      const unitsFeatureVideoLayer = getByTestId(
+        "feature-video-layer-units-and-currency"
+      );
+      const unitsFeatureVideo = getByTestId(
+        "feature-video-units-and-currency"
+      ) as HTMLVideoElement;
+      const connectedFeatureVideo = getByTestId(
+        "feature-video-connected-sheets"
+      ) as HTMLVideoElement;
+      const activeFeatureVideoShell = getByTestId("feature-video-shell");
 
       expect(tabs[0]?.className.includes("rounded-[1rem]")).toBe(true);
       expect(tabs[0]?.className.includes("flex-col")).toBe(true);
@@ -271,9 +302,66 @@ describe("Website", () => {
       expect(plainTextProgress.style.animationDuration).toBe("100ms");
       expect(unitsProgress.getAttribute("data-active")).toBe("false");
       expect(connectedSheetsProgress.getAttribute("data-active")).toBe("false");
-      expect(getByTestId("feature-media-title").textContent).toBe(
-        "Plain Text Calculations"
+      expect(getByTestId("feature-media").getAttribute("data-feature")).toBe(
+        "plain-text-calculations"
       );
+      expect(activeFeatureVideo.autoplay).toBe(true);
+      expect(unitsFeatureVideo.autoplay).toBe(false);
+      expect(connectedFeatureVideo.autoplay).toBe(false);
+      expect(activeFeatureVideo.controls).toBe(false);
+      expect(activeFeatureVideo.muted).toBe(true);
+      expect(activeFeatureVideo.playsInline).toBe(true);
+      expect(activeFeatureVideo.getAttribute("src")).toBe(
+        "/videos/rekna-plain-text-calculations.mp4"
+      );
+      expect(unitsFeatureVideo.getAttribute("src")).toBe(
+        "/videos/rekna-units-and-currency.mp4"
+      );
+      expect(connectedFeatureVideo.getAttribute("src")).toBe(
+        "/videos/rekna-connected-sheets.mp4"
+      );
+      expect(activeFeatureVideo.getAttribute("data-active")).toBe("true");
+      expect(unitsFeatureVideo.getAttribute("data-active")).toBe("false");
+      expect(connectedFeatureVideo.getAttribute("data-active")).toBe("false");
+      expect(activeFeatureVideoLayer.getAttribute("data-active")).toBe("true");
+      expect(unitsFeatureVideoLayer.getAttribute("data-active")).toBe("false");
+      expect(activeFeatureVideo.className.includes("h-full")).toBe(true);
+      expect(activeFeatureVideo.className.includes("w-auto")).toBe(true);
+      expect(activeFeatureVideo.className.includes("max-w-full")).toBe(true);
+      expect(activeFeatureVideo.className.includes("rounded-[1.35rem]")).toBe(
+        true
+      );
+      expect(
+        activeFeatureVideo.className.includes(
+          "shadow-[0_30px_80px_-42px_rgba(0,0,0,0.7)]"
+        )
+      ).toBe(true);
+      expect(
+        activeFeatureVideoShell.className.includes("aspect-[1076/960]")
+      ).toBe(true);
+      expect(activeFeatureVideoShell.className.includes("h-[18rem]")).toBe(
+        false
+      );
+      expect(activeFeatureVideoShell.className.includes("h-[22rem]")).toBe(
+        true
+      );
+      expect(activeFeatureVideoShell.className.includes("sm:h-[27rem]")).toBe(
+        true
+      );
+      expect(activeFeatureVideoShell.className.includes("lg:h-[35rem]")).toBe(
+        true
+      );
+      expect(activeFeatureVideoShell.className.includes("border")).toBe(false);
+      expect(activeFeatureVideoShell.className.includes("rounded")).toBe(false);
+      expect(activeFeatureVideoShell.className.includes("shadow")).toBe(false);
+      expect(activeFeatureVideoShell.className.includes("bg-")).toBe(false);
+      expect(featureColumn.className.includes("lg:min-h-[36rem]")).toBe(true);
+      expect(queryByText("Plain text")).toBeNull();
+      expect(
+        queryByText(
+          "Write calculations in plain text and watch each line resolve instantly beside the editor."
+        )
+      ).toBeNull();
 
       expect(document.body.dataset.rootView).toBe("website");
       expect(websiteShell.style.getPropertyValue("--website-accent")).toBe(
@@ -408,20 +496,31 @@ describe("Website", () => {
           "feature-tab-title-plain-text-calculations"
         ).className.includes("text-[1.35rem]")
       ).toBe(true);
-      expect(plainTextProgress.parentElement?.className.includes("w-full")).toBe(
-        true
-      );
+      expect(
+        plainTextProgress.parentElement?.className.includes("w-full")
+      ).toBe(true);
       expect(
         plainTextProgress.parentElement?.className.includes("h-[3px]")
       ).toBe(true);
       expect(
-        plainTextProgress.parentElement?.className.includes("absolute")
+        plainTextProgress.parentElement?.parentElement?.className.includes(
+          "w-full"
+        )
+      ).toBe(true);
+      expect(
+        plainTextProgress.parentElement?.parentElement?.className.includes(
+          "absolute"
+        )
       ).toBe(false);
       expect(
-        plainTextProgress.parentElement?.className.includes("bottom-3")
+        plainTextProgress.parentElement?.parentElement?.className.includes(
+          "bottom-3"
+        )
       ).toBe(false);
       expect(
-        plainTextProgress.parentElement?.className.includes("w-24")
+        plainTextProgress.parentElement?.parentElement?.className.includes(
+          "w-24"
+        )
       ).toBe(false);
       expect(tabs[0]?.textContent?.trim()).toBe("Plain Text Calculations");
       expect(tabs[1]?.textContent?.trim()).toBe("Units & Currency");
@@ -432,10 +531,30 @@ describe("Website", () => {
       });
 
       await waitFor(() => {
-        expect(getByTestId("feature-media-title").textContent).toBe(
-          "Units & Currency"
+        expect(getByTestId("feature-media").getAttribute("data-feature")).toBe(
+          "units-and-currency"
         );
       });
+      expect(
+        getByTestId("feature-video-plain-text-calculations").getAttribute(
+          "data-active"
+        )
+      ).toBe("false");
+      expect(
+        getByTestId("feature-video-layer-plain-text-calculations").getAttribute(
+          "data-active"
+        )
+      ).toBe("false");
+      expect(
+        getByTestId("feature-video-units-and-currency").getAttribute(
+          "data-active"
+        )
+      ).toBe("true");
+      expect(
+        getByTestId("feature-video-layer-units-and-currency").getAttribute(
+          "data-active"
+        )
+      ).toBe("true");
       expect(unitsProgress.getAttribute("data-active")).toBe("true");
       expect(unitsProgress.style.animationDuration).toBe("100ms");
       expect(plainTextProgress.getAttribute("data-active")).toBe("false");
@@ -451,16 +570,95 @@ describe("Website", () => {
 
       expect(connectedSheetsTab.getAttribute("aria-pressed")).toBe("true");
       expect(connectedSheetsProgress.getAttribute("data-active")).toBe("true");
-      expect(getByTestId("feature-media-title").textContent).toBe(
-        "Connected Sheets"
-      );
+      expect(
+        getByTestId("feature-video-connected-sheets").getAttribute("data-active")
+      ).toBe("true");
+      expect(
+        getByTestId("feature-video-layer-connected-sheets").getAttribute(
+          "data-active"
+        )
+      ).toBe("true");
       expect(getByTestId("feature-media").getAttribute("data-feature")).toBe(
         "connected-sheets"
       );
-      expect(getByRole("img", { name: "Connected Sheets preview" })).toBeTruthy();
       expect(getByRole("link", { name: "Download" }).textContent).toBe(
         "Download"
       );
+    } finally {
+      cleanup();
+      delete document.body.dataset.rootView;
+      window.document.body.innerHTML = "";
+      window.history.replaceState({}, "", "/");
+    }
+  });
+
+  test("waits for loaded video metadata before setting the default carousel timing", async () => {
+    window.history.replaceState({}, "", "/");
+    mockLatestReleaseAssets(legacyReleaseAssets);
+
+    try {
+      const { Website } = await import("./Website");
+      const { getByTestId } = render(<Website />, {
+        container: window.document.body,
+      });
+      const plainTextVideo = getByTestId(
+        "feature-video-plain-text-calculations"
+      ) as HTMLVideoElement;
+      const plainTextProgress = getByTestId(
+        "feature-tab-progress-plain-text-calculations"
+      );
+
+      expect(
+        plainTextProgress.style.animationName
+      ).toBe("none");
+
+      Object.defineProperty(plainTextVideo, "duration", {
+        configurable: true,
+        value: 12.5,
+      });
+
+      await act(async () => {
+        fireEvent.loadedMetadata(plainTextVideo);
+      });
+
+      expect(plainTextProgress.style.animationDuration).toBe("12500ms");
+      expect(
+        plainTextVideo.getAttribute("src")
+      ).toBe("/videos/rekna-plain-text-calculations.mp4");
+    } finally {
+      cleanup();
+      delete document.body.dataset.rootView;
+      window.document.body.innerHTML = "";
+      window.history.replaceState({}, "", "/");
+    }
+  });
+
+  test("advances to the next feature when the active video ends", async () => {
+    window.history.replaceState({}, "", "/");
+    mockLatestReleaseAssets(legacyReleaseAssets);
+
+    try {
+      const { Website } = await import("./Website");
+      const { getByTestId } = render(<Website />, {
+        container: window.document.body,
+      });
+      const plainTextVideo = getByTestId(
+        "feature-video-plain-text-calculations"
+      ) as HTMLVideoElement;
+
+      expect(getByTestId("feature-media").getAttribute("data-feature")).toBe(
+        "plain-text-calculations"
+      );
+
+      await act(async () => {
+        fireEvent.ended(plainTextVideo);
+      });
+
+      await waitFor(() => {
+        expect(getByTestId("feature-media").getAttribute("data-feature")).toBe(
+          "units-and-currency"
+        );
+      });
     } finally {
       cleanup();
       delete document.body.dataset.rootView;
@@ -531,16 +729,14 @@ describe("Website", () => {
       });
       expect(window.location.pathname).toBe("/");
       expect(window.location.hash).toBe("#download");
-      expect(getByTestId("download-cta").textContent).toContain(
-        "Download for Windows (x64)"
-      );
+      expect(getByTestId("download-cta").textContent).toContain("Download for");
       await waitFor(() => {
         expect(getByTestId("download-cta").getAttribute("href")).toBe(
-          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-win-x64-Rekna-Setup.zip"
+          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-macos-arm64-Rekna.dmg"
         );
       });
       expect(getByTestId("detected-download-platform").textContent).toContain(
-        "Windows detected"
+        "Default build selected"
       );
     } finally {
       restoreNavigatorSnapshot();

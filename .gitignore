@@ -15,3 +15,5 @@
 /apps/native/dist-ios-export/
 /apps/native/ios/Pods/
 /apps/native/ios/build/
+.vercel
+.env*.local

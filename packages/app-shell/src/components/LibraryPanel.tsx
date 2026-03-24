@@ -416,7 +416,7 @@ export function LibraryPanel({
               return (
                 <div
                   className={[
-                    "rounded-2xl border bg-background/80 p-2 shadow-xs transition-colors duration-150 hover:duration-0",
+                    "min-w-0 max-w-full rounded-2xl border bg-background/80 p-2 shadow-xs transition-colors duration-150 hover:duration-0",
                     isSelected
                       ? "border-primary/40 bg-secondary/45 hover:border-primary/45 hover:bg-secondary/50"
                       : isKeyboardActive
@@ -432,7 +432,7 @@ export function LibraryPanel({
                     handleSheetContextMenu(event, item.id)
                   }
                 >
-                  <div className="flex items-start gap-2">
+                  <div className="flex min-w-0 max-w-full items-start gap-2">
                     <Checkbox
                       aria-label={`Select ${item.title}`}
                       checked={isSelected}
@@ -476,10 +476,10 @@ export function LibraryPanel({
                         value={renameValue}
                       />
                     ) : (
-                      <div className="flex min-w-0 flex-1 flex-col gap-2">
-                        <div className="flex items-start gap-2">
+                      <div className="flex min-w-0 max-w-full flex-1 flex-col gap-2">
+                        <div className="flex min-w-0 max-w-full items-start gap-2">
                           <Button
-                            className="h-auto flex-1 items-start justify-start rounded-xl px-2.5 py-2.5 text-left hover:bg-transparent hover:text-foreground active:bg-transparent dark:hover:bg-transparent"
+                            className="h-auto min-w-0 max-w-full flex-1 shrink items-start justify-start overflow-hidden rounded-xl px-2.5 py-2.5 text-left whitespace-normal hover:bg-transparent hover:text-foreground active:bg-transparent dark:hover:bg-transparent"
                             onClick={(event) =>
                               handleSheetClick(event, item.id)
                             }

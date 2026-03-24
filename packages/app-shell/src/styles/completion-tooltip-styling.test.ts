@@ -7,6 +7,10 @@ const sheetEditorSource = readFileSync(
   resolve(import.meta.dir, "../components/SheetEditor.tsx"),
   "utf8"
 );
+const completionInfoLayoutSource = readFileSync(
+  resolve(import.meta.dir, "../../../shared/src/completion-info-layout.ts"),
+  "utf8"
+);
 const overlaySource = readFileSync(
   resolve(import.meta.dir, "../components/CompletionOverlayApp.tsx"),
   "utf8"
@@ -14,7 +18,9 @@ const overlaySource = readFileSync(
 
 function readRuleBlock(selector: string) {
   const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = appStyles.match(new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\n\\}`));
+  const match = appStyles.match(
+    new RegExp(`${escapedSelector}\\s*\\{([\\s\\S]*?)\\n\\}`)
+  );
 
   if (!match) {
     throw new Error(`Expected CSS rule for ${selector}`);
@@ -75,15 +81,26 @@ describe("completion tooltip styling", () => {
     expect(appStyles).toMatch(
       /\.cm-tooltip\.cm-tooltip-autocomplete ul li \.cm-completionIcon-tag:after\s*\{[\s\S]*content:\s*"#";/
     );
-    expect(overlaySource).toMatch(/if \(type === "tag"\) \{\s*return "#";\s*\}/);
+    expect(overlaySource).toMatch(
+      /if \(type === "tag"\) \{\s*return "#";\s*\}/
+    );
   });
 
-  test("gives the inline completion info panel a comfortable fixed width range", () => {
+  test("keeps the inline completion info panel adaptive instead of forcing a fixed minimum width", () => {
     const infoRule = readRuleBlock(".cm-tooltip.cm-completionInfo");
+    const bodyRule = readRuleBlock(".linea-completion-info__body");
 
-    expect(infoRule).toContain("max-width: min(300px, 32vw);");
-    expect(infoRule).toContain("min-width: 220px;");
+    expect(infoRule).toContain("max-width: min(300px, calc(100vw - 32px));");
+    expect(infoRule).toContain("width: max-content;");
+    expect(infoRule).toContain("min-width: 0;");
     expect(infoRule).toContain("overflow: auto;");
-    expect(sheetEditorSource).toMatch(/Math\.max\(\s*220,\s*Math\.min\(360,/);
+    expect(bodyRule).toContain("overflow-wrap: anywhere;");
+    expect(bodyRule).toContain("word-break: break-word;");
+    expect(sheetEditorSource).toContain("calculateCompletionInfoLayout");
+    expect(completionInfoLayoutSource).toContain(
+      "className = `cm-completionInfo-${"
+    );
+    expect(completionInfoLayoutSource).toContain("INFO_MAX_WIDTH = 300");
+    expect(completionInfoLayoutSource).toContain("widthStyle");
   });
 });

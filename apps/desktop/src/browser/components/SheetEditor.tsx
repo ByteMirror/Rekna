@@ -9,6 +9,7 @@ import {
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState, Prec } from "@codemirror/state";
 import {
+  Direction,
   EditorView,
   type Rect,
   drawSelection,
@@ -22,7 +23,10 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { EvaluatedLine } from "@linea/calc-engine";
-import type { CompletionOverlayUpdate } from "@linea/shared";
+import {
+  calculateCompletionInfoLayout,
+  type CompletionOverlayUpdate,
+} from "@linea/shared";
 
 import { OPEN_SHEET_SEARCH_EVENT } from "../../shared/sheet-search-shortcut";
 import {
@@ -32,7 +36,6 @@ import {
   getCompletionOverlayInfo,
 } from "../lib/completion-overlay";
 import { getElectrobun } from "../lib/rpc";
-import { isNativeCompletionOverlayEnabled } from "../lib/runtime-flags";
 import {
   SELECTION_BOTTOM_LEFT_CLASS,
   SELECTION_BOTTOM_RIGHT_CLASS,
@@ -136,12 +139,7 @@ export function SheetEditor({
       return;
     }
 
-    const nativeCompletionOverlayEnabled =
-      electrobunRef.current !== null &&
-      isNativeCompletionOverlayEnabled(
-        window.location.search,
-        window.location.hash
-      );
+    const nativeCompletionOverlayEnabled = false;
     const tooltipParent = resolveTooltipParent(rootRef.current);
     const scheduleResultLineSlotSync = (view: EditorView) => {
       if (resultSlotSyncFrameRef.current !== null) {
@@ -1075,26 +1073,23 @@ function resolveToastPortalTarget(rootElement: HTMLElement | null) {
 }
 
 function positionCompletionInfo(
-  _view: EditorView,
+  view: EditorView,
   list: Rect,
-  _option: Rect,
+  option: Rect,
   info: Rect,
   space: Rect
 ) {
-  const spaceLeft = list.left - space.left;
-  const spaceRight = space.right - list.right;
-  const preferLeft = spaceRight < Math.min(info.right - info.left, spaceLeft);
-  const maxWidth = Math.max(
-    220,
-    Math.min(360, Math.max(preferLeft ? spaceLeft : spaceRight, 220))
-  );
-  const maxHeight = Math.max(180, space.bottom - list.top - 16);
+  const layout = calculateCompletionInfoLayout({
+    info,
+    list,
+    option,
+    rtl: view.textDirection === Direction.RTL,
+    space,
+  });
 
   return {
-    class: `linea-completion-info-panel ${
-      preferLeft ? "cm-completionInfo-left" : "cm-completionInfo-right"
-    }`,
-    style: `top: 0px; max-width: ${maxWidth}px; max-height: ${maxHeight}px;`,
+    class: `linea-completion-info-panel ${layout.className}`,
+    style: layout.style,
   };
 }
 
@@ -1164,6 +1159,7 @@ function buildCompletionOverlayUpdate(
     items,
     selectedIndex: selectedCompletionIndex(view.state) ?? 0,
     info,
+    placement: layout.placement,
     infoSide: layout.infoSide,
     infoWidth: layout.infoWidth,
     listWidth: layout.listWidth,
@@ -1240,7 +1236,10 @@ function resultClassName(line: EvaluatedLine) {
 }
 
 function shouldShowHorizontalOverflowShadow(viewport: HTMLElement) {
-  const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+  const maxScrollLeft = Math.max(
+    0,
+    viewport.scrollWidth - viewport.clientWidth
+  );
 
   return maxScrollLeft > 1 && viewport.scrollLeft < maxScrollLeft - 1;
 }

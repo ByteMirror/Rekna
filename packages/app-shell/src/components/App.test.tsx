@@ -1280,7 +1280,7 @@ describe("App", () => {
       expect(
         getByRole("checkbox", { name: "Carry rounded values" })
       ).not.toBeNull();
-      expect(getByRole("checkbox", { name: "Night mode" })).not.toBeNull();
+      expect(getByRole("combobox", { name: "Theme mode" })).not.toBeNull();
       expect(queryAllByRole("checkbox", { name: "Always on top" }).length).toBe(
         0
       );
@@ -1798,7 +1798,7 @@ describe("App", () => {
 
     try {
       const { App } = await import("./App");
-      const { getByRole, getByText, queryByLabelText, queryByRole } = render(
+      const { getByRole, queryByLabelText, queryByRole, queryByText } = render(
         <App EditorComponent={FakeEditor} request={request} />,
         {
           container: window.document.body,
@@ -1806,23 +1806,20 @@ describe("App", () => {
       );
 
       await waitFor(() => {
-        expect(
-          getByRole("heading", { name: "Choose a workspace" })
-        ).not.toBeNull();
+        expect(getByRole("heading", { name: "Rekna" })).not.toBeNull();
       });
 
       expect(getByRole("img", { name: "Rekna app icon" })).not.toBeNull();
-      expect(getByText("Rekna")).not.toBeNull();
-      expect(getByText("Local-first calculation sheets")).not.toBeNull();
-      expect(getByText("Stored locally")).not.toBeNull();
-      expect(getByText("Open existing folders")).not.toBeNull();
-      expect(getByText("Start fresh")).not.toBeNull();
       expect(
-        getByRole("button", { name: "Choose workspace folder" })
+        getByRole("button", { name: "Open Folder as Workspace" })
       ).not.toBeNull();
+      expect(queryByRole("heading", { name: "Choose a workspace" })).toBeNull();
       expect(queryByRole("button", { name: "Create workspace" })).toBeNull();
       expect(queryByLabelText("Workspace name")).toBeNull();
       expect(queryByLabelText("Sheet title")).toBeNull();
+      expect(queryByText("Stored locally")).toBeNull();
+      expect(queryByText("Open existing folders")).toBeNull();
+      expect(queryByText("Start fresh")).toBeNull();
       expect(bootstrap).not.toHaveBeenCalled();
     } finally {
       cleanup();
@@ -1882,9 +1879,7 @@ describe("App", () => {
       });
 
       await waitFor(() => {
-        expect(
-          getByRole("heading", { name: "Choose a workspace" })
-        ).not.toBeNull();
+        expect(getByRole("heading", { name: "Rekna" })).not.toBeNull();
       });
 
       expect(queryByLabelText("Workspace name")).toBeNull();
@@ -1892,7 +1887,7 @@ describe("App", () => {
 
       await act(async () => {
         fireEvent.click(
-          getByRole("button", { name: "Choose workspace folder" })
+          getByRole("button", { name: "Open Folder as Workspace" })
         );
       });
 
@@ -1959,14 +1954,12 @@ describe("App", () => {
       );
 
       await waitFor(() => {
-        expect(
-          getByRole("heading", { name: "Choose a workspace" })
-        ).not.toBeNull();
+        expect(getByRole("heading", { name: "Rekna" })).not.toBeNull();
       });
 
       await act(async () => {
         fireEvent.click(
-          getByRole("button", { name: "Choose workspace folder" })
+          getByRole("button", { name: "Open Folder as Workspace" })
         );
       });
 

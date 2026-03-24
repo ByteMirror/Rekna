@@ -7,13 +7,10 @@ export const REKNA_GITHUB_RELEASES_URL = `https://github.com/${REKNA_GITHUB_REPO
 export const REKNA_GITHUB_LATEST_DOWNLOAD_BASE_URL = `${REKNA_GITHUB_RELEASES_URL}/latest/download`;
 export const REKNA_GITHUB_LATEST_RELEASE_API_URL = `https://api.github.com/repos/${REKNA_GITHUB_REPOSITORY}/releases/latest`;
 
-export type DesktopReleaseFamily = "linux" | "macos" | "windows";
-export type DesktopDownloadFamily = DesktopReleaseFamily | "unknown";
-export type DesktopReleaseVariantId =
-  | "linux-x64"
-  | "macos-arm64"
-  | "windows-x64";
-export type DesktopDownloadVariantId = DesktopReleaseVariantId;
+export type DesktopDownloadFamily = "linux" | "macos" | "unknown";
+export type DesktopDownloadVariantId = "linux-x64" | "macos-arm64";
+export type DesktopReleaseFamily = Exclude<DesktopDownloadFamily, "unknown"> | "windows";
+export type DesktopReleaseVariantId = DesktopDownloadVariantId | "windows-x64";
 
 export type DesktopReleaseAsset = {
   browser_download_url: string;
@@ -28,7 +25,10 @@ export type DesktopReleaseVariant = {
   note: string;
 };
 
-export type DesktopDownloadVariant = DesktopReleaseVariant;
+export type DesktopDownloadVariant = DesktopReleaseVariant & {
+  family: Exclude<DesktopReleaseFamily, "windows">;
+  id: DesktopDownloadVariantId;
+};
 
 export const desktopReleaseVariants: DesktopReleaseVariant[] = [
   {
@@ -54,8 +54,9 @@ export const desktopReleaseVariants: DesktopReleaseVariant[] = [
   },
 ];
 
-export const desktopDownloadVariants: DesktopDownloadVariant[] =
-  desktopReleaseVariants;
+export const desktopDownloadVariants = desktopReleaseVariants.filter(
+  (variant): variant is DesktopDownloadVariant => variant.id !== "windows-x64"
+);
 
 export function buildLatestReleaseAssetUrl(assetFileName: string) {
   return `${REKNA_GITHUB_LATEST_DOWNLOAD_BASE_URL}/${assetFileName}`;

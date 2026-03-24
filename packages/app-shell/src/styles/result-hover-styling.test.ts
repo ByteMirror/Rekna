@@ -36,11 +36,40 @@ describe("result hover styling", () => {
     );
   });
 
+  test("uses a stronger pressed and open highlight than hover", () => {
+    expect(appStyles).toMatch(
+      /\.linea-result-button:active,\s*\.linea-result-button\[data-state="open"\]\s*\{[\s\S]*background:\s*color-mix\(in oklab,\s*currentColor 16%, transparent\);[\s\S]*box-shadow:\s*inset 0 0 0 0\.5px[\s\S]*color-mix\(in oklab,\s*currentColor 28%, transparent\);/
+    );
+    expect(appStyles).toMatch(
+      /\.linea-result-button:active,\s*\.linea-result-button\[data-state="open"\]\s*\{[\s\S]*transition-duration:\s*0ms;/
+    );
+  });
+
   test("renders copyable results as content-width buttons aligned by a separate row wrapper", () => {
     expect(sheetEditorSource).toMatch(/className=\{resultClassName\(line\)\}/);
-    expect(sheetEditorSource).toMatch(
-      /className="linea-result-button cursor-pointer border-0 bg-transparent font-mono"/
+    const copyResultButtonClassNameMatch = sheetEditorSource.match(
+      /aria-label=\{`Copy result \$\{displayValue\}`\}\s+className="([^"]+)"/
     );
-    expect(sheetEditorSource).not.toMatch(/linea-result-button[\s\S]*w-full/);
+
+    expect(copyResultButtonClassNameMatch).not.toBeNull();
+
+    const copyResultButtonClassName = copyResultButtonClassNameMatch?.[1] ?? "";
+    const copyResultButtonClasses = copyResultButtonClassName.split(/\s+/);
+
+    expect(copyResultButtonClasses).toContain("linea-result-button");
+    expect(copyResultButtonClasses).toContain("cursor-pointer");
+    expect(copyResultButtonClasses).toContain("border-0");
+    expect(copyResultButtonClasses).toContain("bg-transparent");
+    expect(copyResultButtonClasses).toContain("font-mono");
+    expect(copyResultButtonClasses).not.toContain("w-full");
+  });
+
+  test("reuses the interactive result-chip affordances for the rounded detail trigger", () => {
+    expect(sheetEditorSource).toMatch(
+      /className="linea-result-button[\s\S]*cursor-pointer[\s\S]*rounded-full[\s\S]*border-0[\s\S]*bg-transparent[\s\S]*text-muted-foreground[\s\S]*hover:text-foreground[\s\S]*active:text-foreground[\s\S]*data-\[state=open\]:text-foreground[\s\S]*focus-visible:outline-none/
+    );
+    expect(appStyles).toMatch(
+      /\.linea-result-button:active,\s*\.linea-result-button\[data-state="open"\]\s*\{[\s\S]*background:\s*color-mix\(in oklab,\s*currentColor 16%, transparent\);[\s\S]*box-shadow:\s*inset 0 0 0 0\.5px[\s\S]*color-mix\(in oklab,\s*currentColor 28%, transparent\);/
+    );
   });
 });

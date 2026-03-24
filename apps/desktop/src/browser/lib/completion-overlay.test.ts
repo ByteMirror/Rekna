@@ -57,8 +57,8 @@ describe("completion overlay layout", () => {
     });
 
     expect(frame.y + frame.height).toBeLessThanOrEqual(842);
-    expect(frame.y).toBe(446);
-    expect(frame.width).toBeGreaterThanOrEqual(560);
+    expect(frame.y).toBeGreaterThanOrEqual(12);
+    expect(frame.width).toBeLessThanOrEqual(496);
   });
 
   test("reserves enough height for the docs panel and outer shadow padding", () => {
@@ -107,7 +107,7 @@ describe("completion overlay layout", () => {
     expect(frame.height).toBe(400);
   });
 
-  test("moves the docs panel to the left side when the caret is near the right edge", () => {
+  test("stacks the docs panel when the right edge leaves too little room for side-by-side content", () => {
     const layout = calculateCompletionOverlayLayout({
       caretRect: {
         bottom: 842,
@@ -129,12 +129,13 @@ describe("completion overlay layout", () => {
       },
     });
 
-    expect(layout.infoSide).toBe("left");
-    expect(layout.infoWidth).toBeGreaterThanOrEqual(220);
+    expect(layout.infoSide).toBe("bottom");
+    expect(layout.frame.x).toBeGreaterThanOrEqual(12);
+    expect(layout.frame.x + layout.frame.width).toBeLessThanOrEqual(508);
     expect(layout.frame.y + layout.frame.height).toBeLessThanOrEqual(842);
   });
 
-  test("shrinks the docs panel width when the available space is tight", () => {
+  test("keeps the docs panel on-screen when the viewport is tight", () => {
     const layout = calculateCompletionOverlayLayout({
       caretRect: {
         bottom: 200,
@@ -156,8 +157,9 @@ describe("completion overlay layout", () => {
       },
     });
 
-    expect(layout.infoWidth).toBeLessThan(280);
-    expect(layout.infoWidth).toBeGreaterThanOrEqual(120);
+    expect(layout.infoSide).toBe("bottom");
+    expect(layout.frame.x).toBeGreaterThanOrEqual(12);
+    expect(layout.frame.x + layout.frame.width).toBeLessThanOrEqual(408);
   });
 
   test("stacks the docs panel below the list when neither side can fit it", () => {
@@ -185,6 +187,40 @@ describe("completion overlay layout", () => {
     expect(layout.infoSide).toBe("bottom");
     expect(layout.infoWidth).toBe(280);
     expect(layout.frame.height).toBe(318);
+  });
+
+  test("keeps the full overlay frame inside the viewport when side-by-side docs would overflow", () => {
+    const layout = calculateCompletionOverlayLayout({
+      caretRect: {
+        bottom: 200,
+        height: 32,
+        left: 300,
+        right: 330,
+        top: 168,
+        width: 30,
+      },
+      info: {
+        body: "Returns the total of the consecutive evaluated rows directly above this line.",
+        detail: "Block total",
+        title: "sum",
+      },
+      items: [
+        {
+          detail: "Property",
+          label: "studio.reallyQuiteLongPropertyNameIndeed",
+          type: "variable",
+        },
+      ],
+      optionCount: 1,
+      window: {
+        height: 900,
+        width: 620,
+      },
+    });
+
+    expect(layout.infoSide).toBe("bottom");
+    expect(layout.frame.x).toBeGreaterThanOrEqual(12);
+    expect(layout.frame.x + layout.frame.width).toBeLessThanOrEqual(608);
   });
 });
 

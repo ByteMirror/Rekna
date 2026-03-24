@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -21,9 +21,28 @@ type DesktopPackageJson = {
 };
 
 function readDesktopPackageJson() {
+  const packageJsonPath = resolveDesktopPackageJsonPath();
+
   return JSON.parse(
-    readFileSync(desktopPackageJsonPath, "utf8")
+    readFileSync(packageJsonPath, "utf8")
   ) as DesktopPackageJson;
+}
+
+function resolveDesktopPackageJsonPath() {
+  const workingDirectory = process.env.PWD?.trim() || process.cwd();
+  const candidatePaths = [
+    desktopPackageJsonPath,
+    resolve(workingDirectory, "package.json"),
+    resolve(workingDirectory, "apps/desktop/package.json"),
+  ];
+
+  for (const candidatePath of candidatePaths) {
+    if (existsSync(candidatePath)) {
+      return candidatePath;
+    }
+  }
+
+  return desktopPackageJsonPath;
 }
 
 function listReleaseTags() {

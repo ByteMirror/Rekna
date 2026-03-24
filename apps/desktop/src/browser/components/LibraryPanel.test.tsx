@@ -453,6 +453,56 @@ describe("LibraryPanel", () => {
       window.document.body.innerHTML = "";
     }
   });
+
+  test("keeps sheet entries constrained to the sidebar width", async () => {
+    try {
+      const { LibraryPanel } = await import("./LibraryPanel");
+      const longTitle =
+        "Budget sheet with an extremely long title that should never push the sidebar entry wider than the panel";
+      const { getByText } = render(
+        <LibraryPanel
+          {...createProps({
+            sheets: [
+              {
+                body: "",
+                id: "sheet-1",
+                tags: [],
+                title: longTitle,
+              },
+            ],
+          })}
+        />,
+        {
+          container: window.document.body,
+        }
+      );
+
+      const sheetButton = getByText(longTitle).closest("button");
+      const sheetEntry = sheetButton?.closest("div.rounded-2xl");
+
+      if (!(sheetButton instanceof window.HTMLButtonElement)) {
+        throw new Error("Expected sheet button");
+      }
+
+      if (!(sheetEntry instanceof window.HTMLDivElement)) {
+        throw new Error("Expected sheet entry");
+      }
+
+      const entryElement = sheetEntry as HTMLDivElement;
+      const buttonElement = sheetButton as HTMLButtonElement;
+
+      expect(entryElement.className).toContain("min-w-0");
+      expect(entryElement.className).toContain("max-w-full");
+      expect(buttonElement.className).toContain("min-w-0");
+      expect(buttonElement.className).toContain("max-w-full");
+      expect(buttonElement.className).toContain("w-full");
+      expect(buttonElement.className).toContain("shrink");
+      expect(buttonElement.className).toContain("whitespace-normal");
+    } finally {
+      cleanup();
+      window.document.body.innerHTML = "";
+    }
+  });
 });
 
 function createProps(

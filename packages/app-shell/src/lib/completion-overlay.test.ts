@@ -60,8 +60,8 @@ describe("completion overlay layout", () => {
 
     const frame = layout.frame;
     expect(frame.y + frame.height).toBeLessThanOrEqual(842);
-    expect(frame.y).toBe(446);
-    expect(frame.width).toBeGreaterThanOrEqual(560);
+    expect(frame.y).toBeGreaterThanOrEqual(12);
+    expect(frame.width).toBeLessThanOrEqual(496);
     expect(layout.placement).toBe("above");
   });
 
@@ -136,6 +136,40 @@ describe("completion overlay layout", () => {
     expect(layout.infoSide).toBe("bottom");
     expect(layout.infoWidth).toBe(280);
     expect(layout.frame.height).toBe(318);
+  });
+
+  test("keeps the full overlay frame inside the viewport when side-by-side docs would overflow", () => {
+    const layout = calculateCompletionOverlayLayout({
+      caretRect: {
+        bottom: 200,
+        height: 32,
+        left: 300,
+        right: 330,
+        top: 168,
+        width: 30,
+      },
+      info: {
+        body: "Returns the total of the consecutive evaluated rows directly above this line.",
+        detail: "Block total",
+        title: "sum",
+      },
+      items: [
+        {
+          detail: "Property",
+          label: "studio.reallyQuiteLongPropertyNameIndeed",
+          type: "variable",
+        },
+      ],
+      optionCount: 1,
+      window: {
+        height: 900,
+        width: 620,
+      },
+    });
+
+    expect(layout.infoSide).toBe("bottom");
+    expect(layout.frame.x).toBeGreaterThanOrEqual(12);
+    expect(layout.frame.x + layout.frame.width).toBeLessThanOrEqual(608);
   });
 });
 

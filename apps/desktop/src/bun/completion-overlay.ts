@@ -218,10 +218,32 @@ function resolveVisibleOverlayPresentation(
   frame: CompletionOverlayFrame;
   renderState: CompletionOverlayRenderState;
 } {
-  if (!display || !update.info || update.infoWidth === null) {
+  if (!display) {
     return {
       frame: clampFrameToDisplayWorkArea(frame, display),
       renderState: stripFrame(update),
+    };
+  }
+
+  const maxContentWidth = Math.max(
+    0,
+    display.workArea.width - COMPLETION_OVERLAY_SHADOW_PADDING * 2
+  );
+  const listWidth = fitOverlayListWidth(update.listWidth, maxContentWidth);
+
+  if (!update.info || update.infoWidth === null) {
+    return {
+      frame: clampFrameToDisplayWorkArea(
+        {
+          ...frame,
+          width: listWidth + COMPLETION_OVERLAY_SHADOW_PADDING * 2,
+        },
+        display
+      ),
+      renderState: {
+        ...stripFrame(update),
+        listWidth,
+      },
     };
   }
 
@@ -248,10 +270,18 @@ function resolveVisibleOverlayPresentation(
     leftAvailable,
     rightAvailable
   );
-  const currentSideAvailable =
-    preferredSide === "right" ? rightAvailable : leftAvailable;
-  const alternateSideAvailable =
-    preferredSide === "right" ? leftAvailable : rightAvailable;
+  const maxSideWidth = Math.max(
+    0,
+    maxContentWidth - listWidth - COMPLETION_OVERLAY_GAP
+  );
+  const currentSideAvailable = Math.min(
+    preferredSide === "right" ? rightAvailable : leftAvailable,
+    maxSideWidth
+  );
+  const alternateSideAvailable = Math.min(
+    preferredSide === "right" ? leftAvailable : rightAvailable,
+    maxSideWidth
+  );
   const currentSideWidth = fitOverlayInfoWidth(
     update.infoWidth,
     currentSideAvailable
@@ -260,40 +290,35 @@ function resolveVisibleOverlayPresentation(
     update.infoWidth,
     alternateSideAvailable
   );
-  const stackedBottomWidth = fitBottomOverlayInfoWidth(update, display);
+  const stackedBottomWidth = fitBottomOverlayInfoWidth(listWidth, display);
 
   if (
     Math.max(currentSideWidth, alternateSideWidth) <
     COMPLETION_OVERLAY_INFO_BOTTOM_THRESHOLD
   ) {
-    const listHeight = getOverlayListHeight(update.items.length);
-    const infoHeight = estimateOverlayInfoHeight(
-      update.info,
-      stackedBottomWidth
-    );
+    const renderState: CompletionOverlayRenderState = {
+      ...stripFrame(update),
+      infoSide: "bottom" as const,
+      infoWidth: stackedBottomWidth,
+      listWidth,
+    };
+    const nextHeight = getOverlayFrameHeight(renderState, update.info);
     const nextFrame = clampFrameToDisplayWorkArea(
       {
         ...frame,
         x: listLeft - COMPLETION_OVERLAY_SHADOW_PADDING,
         width:
-          Math.max(update.listWidth, stackedBottomWidth) +
+          Math.max(listWidth, stackedBottomWidth) +
           COMPLETION_OVERLAY_SHADOW_PADDING * 2,
-        height:
-          listHeight +
-          COMPLETION_OVERLAY_GAP +
-          infoHeight +
-          COMPLETION_OVERLAY_SHADOW_PADDING * 2,
+        y: resolveOverlayFrameY(frame, nextHeight, update.placement),
+        height: nextHeight,
       },
       display
     );
 
     return {
       frame: nextFrame,
-      renderState: {
-        ...stripFrame(update),
-        infoSide: "bottom" as const,
-        infoWidth: stackedBottomWidth,
-      },
+      renderState,
     };
   }
 
@@ -309,23 +334,28 @@ function resolveVisibleOverlayPresentation(
       ? listLeft - infoWidth - COMPLETION_OVERLAY_GAP
       : listLeft;
   const contentWidth =
-    update.listWidth + (hasInfoPanel ? infoWidth + COMPLETION_OVERLAY_GAP : 0);
+    listWidth + (hasInfoPanel ? infoWidth + COMPLETION_OVERLAY_GAP : 0);
+  const renderState: CompletionOverlayRenderState = {
+    ...stripFrame(update),
+    infoSide,
+    infoWidth: hasInfoPanel ? infoWidth : null,
+    listWidth,
+  };
+  const nextHeight = getOverlayFrameHeight(renderState, update.info);
   const nextFrame = clampFrameToDisplayWorkArea(
     {
       ...frame,
       x: contentLeft - COMPLETION_OVERLAY_SHADOW_PADDING,
       width: contentWidth + COMPLETION_OVERLAY_SHADOW_PADDING * 2,
+      y: resolveOverlayFrameY(frame, nextHeight, update.placement),
+      height: nextHeight,
     },
     display
   );
 
   return {
     frame: nextFrame,
-    renderState: {
-      ...stripFrame(update),
-      infoSide,
-      infoWidth: hasInfoPanel ? infoWidth : null,
-    },
+    renderState,
   };
 }
 
@@ -343,20 +373,24 @@ function fitOverlayInfoWidth(requestedWidth: number, availableWidth: number) {
   return Math.max(cappedWidth, minimumVisibleWidth);
 }
 
-function fitBottomOverlayInfoWidth(
-  update: CompletionOverlayUpdate,
-  display: Display
-) {
+function fitBottomOverlayInfoWidth(listWidth: number, display: Display) {
   const maxWidth = Math.max(
     0,
     display.workArea.width - COMPLETION_OVERLAY_SHADOW_PADDING * 2
   );
 
   return clamp(
-    Math.max(update.listWidth, COMPLETION_OVERLAY_INFO_MAX_WIDTH),
+    Math.max(listWidth, COMPLETION_OVERLAY_INFO_MAX_WIDTH),
     Math.min(COMPLETION_OVERLAY_INFO_MIN_VISIBLE_WIDTH, maxWidth),
     maxWidth
   );
+}
+
+function fitOverlayListWidth(requestedWidth: number, maxWidth: number) {
+  const cappedWidth = Math.min(requestedWidth, Math.max(0, maxWidth));
+  const minimumVisibleWidth = Math.min(250, Math.max(0, maxWidth));
+
+  return Math.max(cappedWidth, minimumVisibleWidth);
 }
 
 function resolvedPreferredSide(
@@ -426,4 +460,31 @@ function estimateOverlayInfoHeight(
         bodyLines * COMPLETION_OVERLAY_INFO_LINE_HEIGHT
     )
   );
+}
+
+function getOverlayFrameHeight(
+  renderState: CompletionOverlayRenderState,
+  info: CompletionOverlayUpdate["info"]
+) {
+  const listHeight = getOverlayListHeight(renderState.items.length);
+
+  if (!info || renderState.infoWidth === null) {
+    return listHeight + COMPLETION_OVERLAY_SHADOW_PADDING * 2;
+  }
+
+  const infoHeight = estimateOverlayInfoHeight(info, renderState.infoWidth);
+  const contentHeight =
+    renderState.infoSide === "bottom"
+      ? listHeight + COMPLETION_OVERLAY_GAP + infoHeight
+      : Math.max(listHeight, infoHeight);
+
+  return contentHeight + COMPLETION_OVERLAY_SHADOW_PADDING * 2;
+}
+
+function resolveOverlayFrameY(
+  frame: CompletionOverlayFrame,
+  nextHeight: number,
+  placement: CompletionOverlayUpdate["placement"]
+) {
+  return placement === "above" ? frame.y + frame.height - nextHeight : frame.y;
 }

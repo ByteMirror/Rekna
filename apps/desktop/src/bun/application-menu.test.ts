@@ -77,4 +77,27 @@ describe("buildApplicationMenu", () => {
     });
     expect(findRoleItem).toBeUndefined();
   });
+
+  test("includes a native close window accelerator on macOS", () => {
+    const menu = buildApplicationMenu("Rekna", "darwin");
+    const windowMenu = menu.find(
+      (item) => "label" in item && item.label === "Window"
+    );
+
+    if (!windowMenu || !("submenu" in windowMenu) || !windowMenu.submenu) {
+      throw new Error("Expected a Window menu with submenu items");
+    }
+
+    const closeItem = windowMenu.submenu.find(
+      (item) =>
+        "role" in item &&
+        item.role === "close" &&
+        item.accelerator === "CommandOrControl+W"
+    );
+
+    expect(closeItem).toEqual({
+      role: "close",
+      accelerator: "CommandOrControl+W",
+    });
+  });
 });

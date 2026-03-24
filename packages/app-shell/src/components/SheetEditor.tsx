@@ -9,6 +9,7 @@ import {
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState, Prec } from "@codemirror/state";
 import {
+  Direction,
   EditorView,
   type Rect,
   drawSelection,
@@ -23,6 +24,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { EvaluatedLine } from "@linea/calc-engine";
 import {
+  calculateCompletionInfoLayout,
   type CompletionOverlayUpdate,
   OPEN_SHEET_SEARCH_EVENT,
   getDesktopWindowContext,
@@ -84,7 +86,8 @@ const MAX_RESULT_DISPLAY_CHARACTERS = 10;
 const RESULT_TRUNCATION_ELLIPSIS = "...";
 const FIXED_RESULT_VALUE_WIDTH_CH =
   MAX_RESULT_DISPLAY_CHARACTERS + RESULT_TRUNCATION_ELLIPSIS.length;
-const FIXED_RESULTS_COLUMN_PADDING = "1.75rem";
+const FIXED_RESULTS_COLUMN_PADDING_REM = 3;
+const FIXED_RESULTS_ROUNDED_DETAIL_ALLOWANCE_REM = 2;
 export type ResultLineSlot = {
   height: number;
   top: number;
@@ -128,8 +131,14 @@ export function SheetEditor({
   const [showHorizontalOverflowShadow, setShowHorizontalOverflowShadow] =
     useState(false);
   const latestLinesRef = useRef(lines);
-  const resultsColumnDocumentIdRef = useRef(documentId);
-  const resultsColumnWidth = formatResultsColumnWidth(resultsColumnWidthCh);
+  const resultsColumnWidthDocumentIdRef = useRef(documentId);
+  const resultsColumnAccessoryDocumentIdRef = useRef(documentId);
+  const [resultsColumnAccessoryWidthRem, setResultsColumnAccessoryWidthRem] =
+    useState(() => getResultsColumnAccessoryWidthRem(lines));
+  const resultsColumnWidth = formatResultsColumnWidth(
+    resultsColumnWidthCh,
+    resultsColumnAccessoryWidthRem
+  );
 
   latestChangeRef.current = onChange;
   latestLinesRef.current = lines;
@@ -143,11 +152,7 @@ export function SheetEditor({
     }
 
     const nativeCompletionOverlayEnabled =
-      getDesktopWindowContext()?.nativeCompletionOverlayEnabled ??
-      (electrobunRef.current !== null &&
-        new URLSearchParams(window.location.search).get(
-          "native-completion-overlay"
-        ) !== "0");
+      getDesktopWindowContext()?.nativeCompletionOverlayEnabled === true;
     const tooltipParent = resolveTooltipParent(rootRef.current);
     const scheduleResultLineSlotSync = (view: EditorView) => {
       if (resultSlotSyncFrameRef.current !== null) {
@@ -557,12 +562,25 @@ export function SheetEditor({
     const nextWidthCh = getResultsColumnWidthCh(lines);
 
     setResultsColumnWidthCh((currentWidthCh) => {
-      if (resultsColumnDocumentIdRef.current !== documentId) {
-        resultsColumnDocumentIdRef.current = documentId;
+      if (resultsColumnWidthDocumentIdRef.current !== documentId) {
+        resultsColumnWidthDocumentIdRef.current = documentId;
         return nextWidthCh;
       }
 
       return Math.max(currentWidthCh, nextWidthCh);
+    });
+  }, [documentId, lines]);
+
+  useEffect(() => {
+    const nextAccessoryWidthRem = getResultsColumnAccessoryWidthRem(lines);
+
+    setResultsColumnAccessoryWidthRem((currentWidthRem) => {
+      if (resultsColumnAccessoryDocumentIdRef.current !== documentId) {
+        resultsColumnAccessoryDocumentIdRef.current = documentId;
+        return nextAccessoryWidthRem;
+      }
+
+      return Math.max(currentWidthRem, nextAccessoryWidthRem);
     });
   }, [documentId, lines]);
 
@@ -586,7 +604,8 @@ export function SheetEditor({
           return;
         }
 
-        const shouldShowShadow = shouldShowHorizontalOverflowShadow(nextViewport);
+        const shouldShowShadow =
+          shouldShowHorizontalOverflowShadow(nextViewport);
         setShowHorizontalOverflowShadow((current) =>
           current === shouldShowShadow ? current : shouldShowShadow
         );
@@ -663,7 +682,7 @@ export function SheetEditor({
         </ScrollArea>
         <div
           aria-label="Calculated results"
-          className={`linea-results-surface relative z-10 min-h-full overflow-visible px-0 pr-6 text-right font-mono text-[18px] transition-shadow duration-150 max-[960px]:pr-4 ${
+          className={`linea-results-surface relative z-10 min-h-full overflow-visible pl-6 pr-6 text-right font-mono text-[18px] transition-shadow duration-150 max-[960px]:pl-4 max-[960px]:pr-4 ${
             showHorizontalOverflowShadow
               ? "shadow-[-18px_0_24px_-18px_rgba(15,23,42,0.48)]"
               : "shadow-none"
@@ -753,7 +772,6 @@ export function SheetEditor({
                         void handleCopyResult(displayValue);
                       }
                     }}
-                    style={resultValueContentStyle}
                     type="button"
                   >
                     {renderedDisplayValue}
@@ -841,26 +859,23 @@ function resolveTooltipParent(rootElement: HTMLElement) {
 }
 
 function positionCompletionInfo(
-  _view: EditorView,
+  view: EditorView,
   list: Rect,
   _option: Rect,
   info: Rect,
   space: Rect
 ) {
-  const spaceLeft = list.left - space.left;
-  const spaceRight = space.right - list.right;
-  const preferLeft = spaceRight < Math.min(info.right - info.left, spaceLeft);
-  const maxWidth = Math.max(
-    220,
-    Math.min(360, Math.max(preferLeft ? spaceLeft : spaceRight, 220))
-  );
-  const maxHeight = Math.max(180, space.bottom - list.top - 16);
+  const layout = calculateCompletionInfoLayout({
+    info,
+    list,
+    option: _option,
+    rtl: view.textDirection === Direction.RTL,
+    space,
+  });
 
   return {
-    class: `linea-completion-info-panel ${
-      preferLeft ? "cm-completionInfo-left" : "cm-completionInfo-right"
-    }`,
-    style: `top: 0px; max-width: ${maxWidth}px; max-height: ${maxHeight}px;`,
+    class: `linea-completion-info-panel ${layout.className}`,
+    style: layout.style,
   };
 }
 
@@ -930,6 +945,7 @@ function buildCompletionOverlayUpdate(
     items,
     selectedIndex: selectedCompletionIndex(view.state) ?? 0,
     info,
+    placement: layout.placement,
     infoSide: layout.infoSide,
     infoWidth: layout.infoWidth,
     listWidth: layout.listWidth,
@@ -1006,7 +1022,10 @@ function resultClassName(line: EvaluatedLine) {
 }
 
 function shouldShowHorizontalOverflowShadow(viewport: HTMLElement) {
-  const maxScrollLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+  const maxScrollLeft = Math.max(
+    0,
+    viewport.scrollWidth - viewport.clientWidth
+  );
 
   return maxScrollLeft > 1 && viewport.scrollLeft < maxScrollLeft - 1;
 }
@@ -1018,8 +1037,10 @@ function getResultsColumnWidthCh(lines: EvaluatedLine[]) {
   return FIXED_RESULT_VALUE_WIDTH_CH;
 }
 
-function formatResultsColumnWidth(widthCh: number) {
-  return `calc(${widthCh}ch + ${FIXED_RESULTS_COLUMN_PADDING})`;
+function formatResultsColumnWidth(widthCh: number, accessoryWidthRem = 0) {
+  return `calc(${widthCh}ch + ${
+    FIXED_RESULTS_COLUMN_PADDING_REM + accessoryWidthRem
+  }rem)`;
 }
 
 const fixedResultValueSlotStyle = {
@@ -1028,9 +1049,15 @@ const fixedResultValueSlotStyle = {
   width: `${FIXED_RESULT_VALUE_WIDTH_CH}ch`,
 } satisfies React.CSSProperties;
 
-const resultValueContentStyle = {
-  paddingRight: "0.25rem",
-} satisfies React.CSSProperties;
+function getResultsColumnAccessoryWidthRem(lines: SheetEditorLine[]) {
+  return lines.some(hasRoundedDetail)
+    ? FIXED_RESULTS_ROUNDED_DETAIL_ALLOWANCE_REM
+    : 0;
+}
+
+function hasRoundedDetail(line: SheetEditorLine) {
+  return Boolean(line.displayValue && line.displayValueMeta);
+}
 
 export function isResultDisplayTruncated(displayValue: string) {
   return Array.from(displayValue).length > MAX_RESULT_DISPLAY_CHARACTERS;
@@ -1048,10 +1075,7 @@ export function truncateResultDisplay(displayValue: string) {
 
 function renderResultLabel(displayValue: string | null) {
   return (
-    <span
-      className="inline-block max-w-full min-w-0 overflow-hidden text-right whitespace-nowrap align-top"
-      style={resultValueContentStyle}
-    >
+    <span className="inline-block max-w-full min-w-0 overflow-hidden text-right whitespace-nowrap align-top">
       {displayValue}
     </span>
   );
@@ -1237,11 +1261,11 @@ function renderRoundedDetail(
       <PopoverTrigger asChild>
         <button
           aria-label={`Show full precision for ${line.displayValue}`}
-          className="inline-flex items-center justify-center rounded-full bg-transparent p-0 font-mono text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none"
+          className="linea-result-button inline-flex cursor-pointer items-center justify-center rounded-full border-0 bg-transparent text-muted-foreground hover:text-foreground active:text-foreground data-[state=open]:text-foreground focus-visible:outline-none"
           type="button"
         >
           <Badge
-            className="px-1.5 py-0 font-mono text-[0.625rem] leading-none text-muted-foreground"
+            className="border-current px-1.5 py-0 font-mono text-[0.625rem] leading-none text-current transition-colors"
             variant="outline"
           >
             ≈

@@ -95,12 +95,14 @@ export function calculateCompletionOverlayLayout({
   optionCount: number;
   window: OverlayWindowMetrics;
 }): CompletionOverlayLayout {
-  const listWidth = getCompletionOverlayListWidth(items);
+  const maxContentWidth = getCompletionOverlayMaxContentWidth(window.width);
+  const listWidth = getCompletionOverlayListWidth(items, maxContentWidth);
   const listHeight = getCompletionOverlayListHeight(optionCount);
   const { infoSide, infoWidth } = resolveCompletionOverlayInfoLayout({
     caretRect,
     hasInfo: info !== null,
     listWidth,
+    maxContentWidth,
     window,
   });
   const infoHeight = estimateCompletionOverlayInfoHeight(info, infoWidth);
@@ -139,14 +141,21 @@ export function calculateCompletionOverlayLayout({
     infoWidth !== null && infoSide === "left"
       ? caretRect.left - 18 - infoWidth - COMPLETION_OVERLAY_GAP
       : caretRect.left - 18;
-  const maxContentLeft =
-    window.width - COMPLETION_OVERLAY_EDGE_MARGIN - contentWidth;
+  const contentViewportLeft =
+    COMPLETION_OVERLAY_EDGE_MARGIN + COMPLETION_OVERLAY_SHADOW_PADDING;
+  const contentViewportRight = Math.max(
+    contentViewportLeft,
+    window.width -
+      COMPLETION_OVERLAY_EDGE_MARGIN -
+      COMPLETION_OVERLAY_SHADOW_PADDING
+  );
+  const maxContentLeft = contentViewportRight - contentWidth;
 
-  if (contentWidth <= window.width - COMPLETION_OVERLAY_EDGE_MARGIN * 2) {
+  if (contentWidth <= contentViewportRight - contentViewportLeft) {
     contentLeft = clamp(
       contentLeft,
-      COMPLETION_OVERLAY_EDGE_MARGIN,
-      Math.max(COMPLETION_OVERLAY_EDGE_MARGIN, maxContentLeft)
+      contentViewportLeft,
+      Math.max(contentViewportLeft, maxContentLeft)
     );
   }
 
@@ -179,17 +188,26 @@ export function calculateCompletionOverlayLayout({
   };
 }
 
-export function getCompletionOverlayListWidth(items: CompletionOverlayItem[]) {
+export function getCompletionOverlayListWidth(
+  items: CompletionOverlayItem[],
+  maxWidth = COMPLETION_OVERLAY_LIST_MAX_WIDTH
+) {
   const widestItem = items.reduce((maxWidth, item) => {
     const labelWidth = item.label.length * 9.5;
     const detailWidth = (item.detail?.length ?? 0) * 6.5;
     return Math.max(maxWidth, labelWidth + detailWidth + 88);
   }, COMPLETION_OVERLAY_LIST_MIN_WIDTH);
-
-  return Math.max(
-    COMPLETION_OVERLAY_LIST_MIN_WIDTH,
-    Math.min(COMPLETION_OVERLAY_LIST_MAX_WIDTH, Math.ceil(widestItem))
+  const resolvedMaxWidth = clamp(
+    maxWidth,
+    0,
+    COMPLETION_OVERLAY_LIST_MAX_WIDTH
   );
+  const resolvedMinWidth = Math.min(
+    COMPLETION_OVERLAY_LIST_MIN_WIDTH,
+    resolvedMaxWidth
+  );
+
+  return clamp(Math.ceil(widestItem), resolvedMinWidth, resolvedMaxWidth);
 }
 
 export function getCompletionOverlayInfo(
@@ -264,11 +282,13 @@ function resolveCompletionOverlayInfoLayout({
   caretRect,
   hasInfo,
   listWidth,
+  maxContentWidth,
   window,
 }: {
   caretRect: OverlayRect;
   hasInfo: boolean;
   listWidth: number;
+  maxContentWidth: number;
   window: OverlayWindowMetrics;
 }) {
   if (!hasInfo) {
@@ -280,10 +300,13 @@ function resolveCompletionOverlayInfoLayout({
 
   const listLeft = caretRect.left - 18;
   const listRight = listLeft + listWidth;
-  const viewportLeft = COMPLETION_OVERLAY_EDGE_MARGIN;
+  const viewportLeft =
+    COMPLETION_OVERLAY_EDGE_MARGIN + COMPLETION_OVERLAY_SHADOW_PADDING;
   const viewportRight = Math.max(
-    COMPLETION_OVERLAY_EDGE_MARGIN,
-    window.width - COMPLETION_OVERLAY_EDGE_MARGIN
+    viewportLeft,
+    window.width -
+      COMPLETION_OVERLAY_EDGE_MARGIN -
+      COMPLETION_OVERLAY_SHADOW_PADDING
   );
   const spaceLeft = Math.max(
     0,
@@ -297,8 +320,18 @@ function resolveCompletionOverlayInfoLayout({
     spaceRight < Math.min(COMPLETION_OVERLAY_INFO_MAX_WIDTH, spaceLeft);
   const preferredSide = preferLeft ? "left" : "right";
   const alternateSide = preferLeft ? "right" : "left";
-  const preferredSpace = preferredSide === "left" ? spaceLeft : spaceRight;
-  const alternateSpace = alternateSide === "left" ? spaceLeft : spaceRight;
+  const maxSideWidth = Math.max(
+    0,
+    maxContentWidth - listWidth - COMPLETION_OVERLAY_GAP
+  );
+  const preferredSpace = Math.min(
+    preferredSide === "left" ? spaceLeft : spaceRight,
+    maxSideWidth
+  );
+  const alternateSpace = Math.min(
+    alternateSide === "left" ? spaceLeft : spaceRight,
+    maxSideWidth
+  );
   const preferredWidth = fitCompletionOverlayInfoWidth(preferredSpace);
   const alternateWidth = fitCompletionOverlayInfoWidth(alternateSpace);
 
@@ -310,7 +343,7 @@ function resolveCompletionOverlayInfoLayout({
       infoSide: "bottom" as const,
       infoWidth: fitBottomCompletionOverlayInfoWidth(
         listWidth,
-        viewportRight - viewportLeft
+        maxContentWidth
       ),
     };
   }
@@ -328,12 +361,12 @@ function resolveCompletionOverlayInfoLayout({
 
 function fitBottomCompletionOverlayInfoWidth(
   listWidth: number,
-  viewportWidth: number
+  maxContentWidth: number
 ) {
   return clamp(
     Math.max(listWidth, COMPLETION_OVERLAY_INFO_MAX_WIDTH),
-    Math.min(COMPLETION_OVERLAY_INFO_MIN_VISIBLE_WIDTH, viewportWidth),
-    viewportWidth
+    Math.min(COMPLETION_OVERLAY_INFO_MIN_VISIBLE_WIDTH, maxContentWidth),
+    maxContentWidth
   );
 }
 
@@ -363,4 +396,13 @@ function getCompletionOverlayListHeight(optionCount: number) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function getCompletionOverlayMaxContentWidth(windowWidth: number) {
+  return Math.max(
+    0,
+    windowWidth -
+      COMPLETION_OVERLAY_EDGE_MARGIN * 2 -
+      COMPLETION_OVERLAY_SHADOW_PADDING * 2
+  );
 }

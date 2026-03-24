@@ -59,6 +59,7 @@ export function buildApplicationMenu(
         ? [
             { role: "minimize", accelerator: "CommandOrControl+M" },
             { role: "zoom" },
+            { role: "close", accelerator: "CommandOrControl+W" },
             { type: "separator" },
             { role: "bringAllToFront" },
           ]

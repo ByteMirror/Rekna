@@ -33,7 +33,6 @@ import {
 } from "./SettingsPanel";
 import { SheetEditor, type SheetEditorLine } from "./SheetEditor";
 import { Button } from "./ui/button";
-import { Card, CardContent, CardDescription, CardHeader } from "./ui/card";
 import {
   Dialog,
   DialogBody,
@@ -160,6 +159,12 @@ const SYNTAX_GUIDE_SECTIONS: SyntaxGuideSection[] = [
     title: "Functions",
   },
 ];
+const WEBSITE_DISPLAY_FONT =
+  '"Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif';
+const REKNA_DESKTOP_ICON_URL = new URL(
+  "../../../../apps/desktop/icon.iconset/icon_512x512.png",
+  import.meta.url
+).href;
 
 export function App({
   EditorComponent = SheetEditor,
@@ -746,40 +751,61 @@ export function App({
     workspaceSelectionReady &&
     !workspaceSelection
   ) {
+    const workspaceChooserBackdropStyle: CSSProperties = {
+      backgroundImage: [
+        "radial-gradient(circle at 50% 26%, color-mix(in oklab, var(--primary) 22%, transparent) 0%, transparent 18%)",
+        "radial-gradient(circle at 50% 100%, color-mix(in oklab, black 20%, transparent) 0%, transparent 48%)",
+      ].join(", "),
+      opacity: resolvedTheme === "dark" ? 0.9 : 0.58,
+    };
+
     return (
       <div
-        className="flex h-full items-center justify-center bg-background p-6 text-foreground"
+        className="relative flex h-full items-center justify-center overflow-hidden bg-background px-4 py-6 text-foreground sm:px-6 sm:py-8"
         data-theme={resolvedTheme}
         style={getAppStyle(settings)}
       >
-        <Card className="w-full max-w-xl border-border/70 bg-card/95 shadow-2xl">
-          <CardHeader className="space-y-2">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Choose a workspace
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={workspaceChooserBackdropStyle}
+        />
+        <div className="relative w-full max-w-sm">
+          <div className="flex flex-col items-center gap-7 px-8 py-10 text-center">
+            <div className="relative">
+              <div className="absolute inset-2 rounded-[2rem] bg-primary/26 blur-3xl" />
+              <img
+                alt="Rekna app icon"
+                className="relative size-32 rounded-[2rem] shadow-[0_22px_44px_rgba(0,0,0,0.28)]"
+                src={REKNA_DESKTOP_ICON_URL}
+              />
+            </div>
+
+            <h1
+              className="text-4xl font-semibold tracking-tight text-foreground sm:text-[2.9rem]"
+              style={{ fontFamily: WEBSITE_DISPLAY_FONT }}
+            >
+              Rekna
             </h1>
-            <CardDescription className="max-w-lg text-sm leading-6">
-              A workspace is the folder Rekna uses to store your sheets. Pick an
-              empty folder to start fresh, or choose an existing workspace
-              folder to continue.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+
             <Button
-              className="w-full sm:min-w-56"
+              className="h-11 w-full rounded-xl bg-primary text-foreground shadow-[0_16px_34px_rgba(0,0,0,0.24)] hover:bg-primary/90 hover:text-foreground"
               disabled={workspaceActionState !== null}
               onClick={() => void handleOpenWorkspaceFolder()}
               type="button"
             >
               {workspaceActionState === "opening"
-                ? "Choosing..."
-                : "Choose workspace folder"}
+                ? "Opening..."
+                : "Open Folder as Workspace"}
             </Button>
 
             {workspaceActionError ? (
-              <p className="text-sm text-destructive">{workspaceActionError}</p>
+              <p className="text-sm leading-6 text-destructive">
+                {workspaceActionError}
+              </p>
             ) : null}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }

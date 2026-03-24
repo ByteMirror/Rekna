@@ -1,4 +1,5 @@
 import { ArrowUpRight, ChevronDown } from "lucide-react";
+import { motion } from "framer-motion";
 import {
   desktopDownloadVariants as sharedDesktopDownloadVariants,
   REKNA_GITHUB_LATEST_RELEASE_API_URL,
@@ -9,10 +10,9 @@ import {
   resolveDesktopDownloadUrl,
 } from "@linea/shared";
 import type { CSSProperties, MouseEvent } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import reknaDesktopIcon from "../../../../apps/desktop/icon.iconset/icon_512x512.png";
-import lineaAppScreenshot from "../assets/linea-app-screenshot.png";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -22,11 +22,9 @@ import {
 } from "./ui/dropdown-menu";
 
 type FeatureDefinition = {
-  body: string;
-  eyebrow: string;
   id: string;
-  objectPosition: string;
   title: string;
+  videoSrc: string;
 };
 
 type DownloadFamily = DesktopDownloadFamily;
@@ -79,25 +77,19 @@ const GITHUB_REPO_URL = REKNA_GITHUB_REPOSITORY_URL;
 
 const homepageFeatures: FeatureDefinition[] = [
   {
-    body: "Write calculations in plain text and watch each line resolve instantly beside the editor.",
-    eyebrow: "Plain text",
     id: "plain-text-calculations",
-    objectPosition: "50% 48%",
     title: "Plain Text Calculations",
+    videoSrc: "/videos/rekna-plain-text-calculations.mp4",
   },
   {
-    body: "Convert units and currencies inline, from metres and inches to teaspoons and exchange rates.",
-    eyebrow: "Convert inline",
     id: "units-and-currency",
-    objectPosition: "52% 12%",
     title: "Units & Currency",
+    videoSrc: "/videos/rekna-units-and-currency.mp4",
   },
   {
-    body: "Export values from one sheet and import them into another so reusable totals stay connected.",
-    eyebrow: "Import & export",
     id: "connected-sheets",
-    objectPosition: "50% 82%",
     title: "Connected Sheets",
+    videoSrc: "/videos/rekna-connected-sheets.mp4",
   },
 ] as const;
 
@@ -148,11 +140,14 @@ const homepageTestimonials: TestimonialDefinition[] = [
   },
 ] as const;
 
-export function Website({ featureCycleMs = 3200 }: WebsiteProps) {
+export function Website({ featureCycleMs }: WebsiteProps) {
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const [downloadVariants, setDownloadVariants] = useState<DownloadVariant[]>(
     fallbackDownloadVariants
   );
+  const [featureDurationsMs, setFeatureDurationsMs] = useState<
+    Record<string, number>
+  >({});
 
   useEffect(() => {
     const previousRootView = document.body.dataset.rootView;
@@ -203,17 +198,27 @@ export function Website({ featureCycleMs = 3200 }: WebsiteProps) {
     };
   }, []);
 
+  const activeFeature =
+    homepageFeatures[activeFeatureIndex] ?? homepageFeatures[0];
+  const getFeatureCycleDuration = (featureId: string) =>
+    featureCycleMs ?? featureDurationsMs[featureId] ?? 0;
+  const activeFeatureCycleMs = getFeatureCycleDuration(activeFeature.id);
+
   useEffect(() => {
-    const intervalId = window.setInterval(() => {
+    if (featureCycleMs === undefined || activeFeatureCycleMs <= 0) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
       setActiveFeatureIndex((currentIndex) =>
         (currentIndex + 1) % homepageFeatures.length
       );
-    }, featureCycleMs);
+    }, activeFeatureCycleMs);
 
     return () => {
-      window.clearInterval(intervalId);
+      window.clearTimeout(timeoutId);
     };
-  }, [featureCycleMs]);
+  }, [activeFeature.id, activeFeatureCycleMs]);
 
   useEffect(() => {
     let isDisposed = false;
@@ -230,9 +235,6 @@ export function Website({ featureCycleMs = 3200 }: WebsiteProps) {
       isDisposed = true;
     };
   }, []);
-
-  const activeFeature =
-    homepageFeatures[activeFeatureIndex] ?? homepageFeatures[0];
 
   return (
     <div
@@ -284,7 +286,25 @@ export function Website({ featureCycleMs = 3200 }: WebsiteProps) {
           activeFeature={activeFeature}
           activeFeatureIndex={activeFeatureIndex}
           downloadVariants={downloadVariants}
-          featureCycleMs={featureCycleMs}
+          getFeatureCycleDuration={getFeatureCycleDuration}
+          usesTimedFeatureCycle={featureCycleMs !== undefined}
+          onFeatureAdvance={() => {
+            setActiveFeatureIndex(
+              (currentIndex) => (currentIndex + 1) % homepageFeatures.length
+            );
+          }}
+          onFeatureDurationChange={(featureId, durationMs) => {
+            setFeatureDurationsMs((currentDurations) => {
+              if (currentDurations[featureId] === durationMs) {
+                return currentDurations;
+              }
+
+              return {
+                ...currentDurations,
+                [featureId]: durationMs,
+              };
+            });
+          }}
           onFeatureSelect={setActiveFeatureIndex}
         />
       </main>
@@ -305,7 +325,12 @@ function WebsiteHeader() {
           className="size-12 rounded-[1.1rem]"
           src={reknaDesktopIcon}
         />
-        <span className="uppercase">Rekna</span>
+        <span
+          className="text-[2rem] leading-none tracking-[-0.05em] text-[var(--website-ink)]"
+          style={{ fontFamily: displayFont }}
+        >
+          Rekna
+        </span>
       </a>
       <div className="flex items-center gap-5">
         <a
@@ -332,20 +357,61 @@ function Homepage({
   activeFeature,
   activeFeatureIndex,
   downloadVariants,
-  featureCycleMs,
+  getFeatureCycleDuration,
+  usesTimedFeatureCycle,
+  onFeatureAdvance,
+  onFeatureDurationChange,
   onFeatureSelect,
 }: {
   activeFeature: FeatureDefinition;
   activeFeatureIndex: number;
   downloadVariants: DownloadVariant[];
-  featureCycleMs: number;
+  getFeatureCycleDuration: (featureId: string) => number;
+  usesTimedFeatureCycle: boolean;
+  onFeatureAdvance: () => void;
+  onFeatureDurationChange: (featureId: string, durationMs: number) => void;
   onFeatureSelect: (nextIndex: number) => void;
 }) {
+  const featureVideoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
+
+  useEffect(() => {
+    homepageFeatures.forEach((feature) => {
+      const video = featureVideoRefs.current[feature.id];
+
+      if (!video) {
+        return;
+      }
+
+      if (feature.id === activeFeature.id) {
+        try {
+          video.currentTime = 0;
+        } catch {
+          // Ignore seek errors until metadata is ready.
+        }
+
+        const playAttempt = video.play();
+
+        if (playAttempt && typeof playAttempt.catch === "function") {
+          void playAttempt.catch(() => undefined);
+        }
+        return;
+      }
+
+      video.pause();
+
+      try {
+        video.currentTime = 0;
+      } catch {
+        // Ignore seek errors until metadata is ready.
+      }
+    });
+  }, [activeFeature.id]);
+
   return (
     <div className="flex flex-1 flex-col gap-14 py-10 lg:gap-20 lg:py-14">
-      <section className="grid items-center gap-12 lg:grid-cols-[minmax(20rem,21rem)_minmax(0,1fr)] lg:gap-16">
+      <section className="grid items-center gap-12 lg:grid-cols-[minmax(20rem,21rem)_minmax(0,1fr)] lg:gap-20">
         <div
-          className="mx-auto flex w-full max-w-[21rem] flex-col justify-center lg:mx-0 lg:min-h-[30rem]"
+          className="mx-auto flex w-full max-w-[21rem] flex-col justify-center lg:mx-0 lg:min-h-[36rem]"
           data-testid="feature-column"
         >
           <h1
@@ -371,6 +437,9 @@ function Homepage({
             >
               {homepageFeatures.map((feature, index) => {
                 const isActive = index === activeFeatureIndex;
+                const featureCycleDurationMs = getFeatureCycleDuration(
+                  feature.id
+                );
 
                 return (
                   <button
@@ -394,29 +463,34 @@ function Homepage({
                     </span>
                     <span
                       aria-hidden="true"
-                      className={`h-[3px] w-full overflow-hidden rounded-full ${
-                        isActive
-                          ? "bg-[color-mix(in_oklab,var(--website-bg)_18%,transparent)]"
-                          : "bg-[var(--website-ink-soft)]"
-                      }`}
+                      className="block w-full px-4"
                     >
                       <span
-                        className={`block h-full w-full origin-left rounded-full ${
+                        className={`block h-[3px] w-full overflow-hidden rounded-full ${
                           isActive
-                            ? "bg-[var(--website-bg)]"
-                            : "bg-[var(--website-ink)]"
-                        } ${isActive ? "" : "opacity-0"}`}
-                        data-active={isActive ? "true" : "false"}
-                        data-testid={`feature-tab-progress-${feature.id}`}
-                        style={{
-                          animationDuration: `${featureCycleMs}ms`,
-                          animationFillMode: "forwards",
-                          animationName: isActive
-                            ? "websiteFeatureProgress"
-                            : "none",
-                          animationTimingFunction: "linear",
-                        }}
-                      />
+                            ? "bg-[color-mix(in_oklab,var(--website-bg)_18%,transparent)]"
+                            : "bg-[var(--website-ink-soft)]"
+                        }`}
+                      >
+                        <span
+                          className={`block h-full w-full origin-left rounded-full ${
+                            isActive
+                              ? "bg-[var(--website-bg)]"
+                              : "bg-[var(--website-ink)]"
+                          } ${isActive ? "" : "opacity-0"}`}
+                          data-active={isActive ? "true" : "false"}
+                          data-testid={`feature-tab-progress-${feature.id}`}
+                          style={{
+                            animationDuration: `${featureCycleDurationMs}ms`,
+                            animationFillMode: "forwards",
+                            animationName:
+                              isActive && featureCycleDurationMs > 0
+                              ? "websiteFeatureProgress"
+                              : "none",
+                            animationTimingFunction: "linear",
+                          }}
+                        />
+                      </span>
                     </span>
                   </button>
                 );
@@ -426,39 +500,74 @@ function Homepage({
         </div>
         <div className="relative min-h-0 lg:self-center">
           <div
-            aria-hidden="true"
-            className="absolute inset-x-12 top-10 h-40 rounded-full bg-[var(--website-accent-soft)] blur-3xl"
-          />
-          <figure
-            className="relative overflow-hidden rounded-[1.6rem] border border-[var(--website-line)] bg-[var(--website-surface)]"
+            className="relative flex items-center justify-center"
             data-feature={activeFeature.id}
             data-testid="feature-media"
           >
-            <div className="flex items-center justify-between border-b border-[var(--website-line)] px-4 py-3 text-[0.68rem] uppercase tracking-[0.18em] text-[var(--website-muted)]">
-              <span>{activeFeature.eyebrow}</span>
-              <span data-testid="feature-media-title">{activeFeature.title}</span>
+            <div
+              className="relative mx-auto aspect-[1076/960] h-[22rem] max-w-full sm:h-[27rem] lg:h-[35rem]"
+              data-testid="feature-video-shell"
+            >
+              {homepageFeatures.map((feature) => {
+                const isActive = feature.id === activeFeature.id;
+
+                return (
+                  <motion.div
+                    animate={{
+                      filter: isActive ? "blur(0px)" : "blur(10px)",
+                      opacity: isActive ? 1 : 0,
+                      scale: isActive ? 1 : 0.985,
+                    }}
+                    className={`absolute inset-0 flex items-center justify-center ${
+                      isActive ? "" : "pointer-events-none"
+                    }`}
+                    data-active={isActive ? "true" : "false"}
+                    data-testid={`feature-video-layer-${feature.id}`}
+                    initial={false}
+                    key={feature.id}
+                    transition={{
+                      duration: 0.55,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                  >
+                    <video
+                      aria-hidden={isActive ? "false" : "true"}
+                      autoPlay={isActive}
+                      className="block h-full w-auto max-w-full rounded-[1.35rem] shadow-[0_30px_80px_-42px_rgba(0,0,0,0.7)]"
+                      data-active={isActive ? "true" : "false"}
+                      data-testid={`feature-video-${feature.id}`}
+                      disablePictureInPicture
+                      muted
+                      onEnded={() => {
+                        if (!usesTimedFeatureCycle && isActive) {
+                          onFeatureAdvance();
+                        }
+                      }}
+                      onLoadedMetadata={(event) => {
+                        const durationSeconds = event.currentTarget.duration;
+
+                        if (
+                          Number.isFinite(durationSeconds) &&
+                          durationSeconds > 0
+                        ) {
+                          onFeatureDurationChange(
+                            feature.id,
+                            Math.round(durationSeconds * 1000)
+                          );
+                        }
+                      }}
+                      playsInline
+                      preload="auto"
+                      ref={(node) => {
+                        featureVideoRefs.current[feature.id] = node;
+                      }}
+                      src={feature.videoSrc}
+                    />
+                  </motion.div>
+                );
+              })}
             </div>
-            <div className="relative aspect-[16/10] overflow-hidden">
-              <img
-                alt={`${activeFeature.title} preview`}
-                className="h-full w-full object-cover transition-[transform,object-position] duration-700 ease-out"
-                src={lineaAppScreenshot}
-                style={{
-                  objectPosition: activeFeature.objectPosition,
-                  transform:
-                    activeFeature.id === "plain-text-calculations"
-                      ? "scale(1.06)"
-                      : activeFeature.id === "connected-sheets"
-                        ? "scale(1.04)"
-                        : "scale(1)",
-                }}
-              />
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(18,21,18,0.02),rgba(18,21,18,0.22))]" />
-            </div>
-            <figcaption className="border-t border-[var(--website-line)] px-4 py-4 text-sm leading-7 text-[var(--website-muted)]">
-              {activeFeature.body}
-            </figcaption>
-          </figure>
+          </div>
         </div>
       </section>
 
@@ -854,10 +963,6 @@ function detectDownloadFamily(): DownloadFamily {
     return "linux";
   }
 
-  if (platformText.includes("win")) {
-    return "windows";
-  }
-
   return "unknown";
 }
 
@@ -895,10 +1000,6 @@ function getDefaultDownloadVariant(
   family: DownloadFamily,
   downloadVariants: DownloadVariant[]
 ) {
-  if (family === "windows") {
-    return downloadVariants.find((variant) => variant.id === "windows-x64")!;
-  }
-
   if (family === "linux") {
     return downloadVariants.find((variant) => variant.id === "linux-x64")!;
   }
@@ -913,10 +1014,6 @@ function getDownloadFamilyLabel(family: DownloadFamily) {
 
   if (family === "linux") {
     return "Linux";
-  }
-
-  if (family === "windows") {
-    return "Windows";
   }
 
   return "Recommended";
