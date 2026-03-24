@@ -1,10 +1,15 @@
 import type { ElectrobunConfig } from "electrobun";
 
+import {
+  resolveDesktopReleaseBaseUrl,
+  resolveDesktopReleaseVersion,
+} from "./scripts/release/desktop-version";
+
 export default {
   app: {
     name: "Rekna",
     identifier: "dev.fabianurbanek.linea",
-    version: "0.1.0",
+    version: resolveDesktopReleaseVersion(),
   },
   build: {
     bun: {
@@ -24,5 +29,8 @@ export default {
     win: {
       bundleCEF: false,
     },
+  },
+  release: {
+    baseUrl: resolveDesktopReleaseBaseUrl(),
   },
 } satisfies ElectrobunConfig;

@@ -1,3 +1,4 @@
+export * from "./desktop-release";
 export * from "./fuzzy-search";
 export * from "./rpc";
 export * from "./sheet-tags";

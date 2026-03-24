@@ -1,5 +1,10 @@
 import { ArrowUpRight, ChevronDown } from "lucide-react";
-import { motion } from "framer-motion";
+import {
+  buildLatestReleaseAssetUrl,
+  desktopDownloadVariants as sharedDesktopDownloadVariants,
+  REKNA_GITHUB_REPOSITORY_URL,
+  type DesktopDownloadFamily,
+} from "@linea/shared";
 import type { CSSProperties, MouseEvent } from "react";
 import { useEffect, useState } from "react";
 
@@ -21,12 +26,12 @@ type FeatureDefinition = {
   title: string;
 };
 
-type DownloadFamily = "linux" | "macos" | "unknown" | "windows";
+type DownloadFamily = DesktopDownloadFamily;
 
 type DownloadVariant = {
   family: Exclude<DownloadFamily, "unknown">;
   href: string;
-  id: string;
+  id: "linux-x64" | "macos-arm64";
   label: string;
   note: string;
 };
@@ -67,6 +72,7 @@ const HOMEPAGE_PATH = "/";
 const DOWNLOAD_PATH = "/download";
 const DOWNLOAD_HASH = "#download";
 const DOWNLOAD_SECTION_ID = "download";
+const GITHUB_REPO_URL = REKNA_GITHUB_REPOSITORY_URL;
 
 const homepageFeatures: FeatureDefinition[] = [
   {
@@ -92,36 +98,15 @@ const homepageFeatures: FeatureDefinition[] = [
   },
 ] as const;
 
-const downloadVariants: DownloadVariant[] = [
-  {
-    family: "macos",
-    href: buildDownloadRequestHref("macOS (Apple Silicon)"),
-    id: "macos-arm64",
-    label: "macOS (Apple Silicon)",
-    note: "Recommended for current Macs.",
-  },
-  {
-    family: "macos",
-    href: buildDownloadRequestHref("macOS (Intel)"),
-    id: "macos-x64",
-    label: "macOS (Intel)",
-    note: "For older Intel-based Macs.",
-  },
-  {
-    family: "windows",
-    href: buildDownloadRequestHref("Windows (x64)"),
-    id: "windows-x64",
-    label: "Windows (x64)",
-    note: "Best fit for most Windows machines.",
-  },
-  {
-    family: "linux",
-    href: buildDownloadRequestHref("Linux (x64)"),
-    id: "linux-x64",
-    label: "Linux (x64)",
-    note: "For modern 64-bit Linux desktops.",
-  },
-] as const;
+const downloadVariants: DownloadVariant[] = sharedDesktopDownloadVariants.map(
+  (variant) => ({
+    family: variant.family,
+    href: buildLatestReleaseAssetUrl(variant.assetFileName),
+    id: variant.id,
+    label: variant.label,
+    note: variant.note,
+  })
+);
 
 const homepageTestimonials: TestimonialDefinition[] = [
   {
@@ -255,6 +240,26 @@ export function Website({ featureCycleMs = 3200 }: WebsiteProps) {
             transform: scaleX(1);
           }
         }
+
+        @keyframes websiteTestimonialLaneLeft {
+          from {
+            transform: translate3d(0, 0, 0);
+          }
+
+          to {
+            transform: translate3d(-50%, 0, 0);
+          }
+        }
+
+        @keyframes websiteTestimonialLaneRight {
+          from {
+            transform: translate3d(-50%, 0, 0);
+          }
+
+          to {
+            transform: translate3d(0, 0, 0);
+          }
+        }
       `}</style>
       <main
         className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6 py-6 sm:px-10 sm:py-8 lg:px-12"
@@ -287,13 +292,23 @@ function WebsiteHeader() {
         />
         <span className="uppercase">Rekna</span>
       </a>
-      <a
-        className="text-[0.72rem] uppercase tracking-[0.18em] text-[var(--website-muted)] transition-colors hover:text-[var(--website-ink)]"
-        href={DOWNLOAD_HASH}
-        onClick={navigateToDownload}
-      >
-        Download
-      </a>
+      <div className="flex items-center gap-5">
+        <a
+          className="text-[0.72rem] uppercase tracking-[0.18em] text-[var(--website-muted)] transition-colors hover:text-[var(--website-ink)]"
+          href={GITHUB_REPO_URL}
+          rel="noreferrer"
+          target="_blank"
+        >
+          GitHub
+        </a>
+        <a
+          className="text-[0.72rem] uppercase tracking-[0.18em] text-[var(--website-muted)] transition-colors hover:text-[var(--website-ink)]"
+          href={DOWNLOAD_HASH}
+          onClick={navigateToDownload}
+        >
+          Download
+        </a>
+      </div>
     </nav>
   );
 }
@@ -489,45 +504,86 @@ function HomepageTestimonialLane({
   laneId: string;
   testimonials: TestimonialDefinition[];
 }) {
+  const [activeCardId, setActiveCardId] = useState<string | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
   const marqueeTestimonials = [...testimonials, ...testimonials];
 
   return (
     <div
       className="overflow-hidden"
       data-direction={direction}
+      data-paused={isPaused ? "true" : "false"}
       data-testid={laneId}
       style={{
         maskImage:
           "linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)",
       }}
     >
-      <motion.div
-        animate={
-          direction === "left"
-            ? { x: ["0%", "-50%"] }
-            : { x: ["-50%", "0%"] }
-        }
+      <div
         className="flex w-max gap-5 pr-5"
-        transition={{
-          duration: direction === "left" ? 28 : 30,
-          ease: "linear",
-          repeat: Infinity,
+        data-testid={`${laneId}-track`}
+        style={{
+          animationDuration: `${direction === "left" ? 28 : 30}s`,
+          animationIterationCount: "infinite",
+          animationName:
+            direction === "left"
+              ? "websiteTestimonialLaneLeft"
+              : "websiteTestimonialLaneRight",
+          animationPlayState: isPaused ? "paused" : "running",
+          animationTimingFunction: "linear",
+          willChange: "transform",
         }}
       >
         {marqueeTestimonials.map((testimonial, index) => (
-          <HomepageTestimonialCard
-            key={`${laneId}-${testimonial.id}-${index}`}
-            testimonial={testimonial}
-          />
+          (() => {
+            const cardId = `${laneId}-${testimonial.id}-${index}`;
+
+            return (
+              <HomepageTestimonialCard
+                isHighlighted={activeCardId === cardId}
+                key={cardId}
+                onMouseEnter={() => {
+                  setActiveCardId(cardId);
+                  setIsPaused(true);
+                }}
+                onMouseLeave={() => {
+                  setActiveCardId(null);
+                  setIsPaused(false);
+                }}
+                onFocus={() => {
+                  setActiveCardId(cardId);
+                  setIsPaused(true);
+                }}
+                onBlur={() => {
+                  setActiveCardId(null);
+                  setIsPaused(false);
+                }}
+                testId={`testimonial-card-${cardId}`}
+                testimonial={testimonial}
+              />
+            );
+          })()
         ))}
-      </motion.div>
+      </div>
     </div>
   );
 }
 
 function HomepageTestimonialCard({
+  isHighlighted,
+  onBlur,
+  onFocus,
+  onMouseEnter,
+  onMouseLeave,
+  testId,
   testimonial,
 }: {
+  isHighlighted: boolean;
+  onBlur: () => void;
+  onFocus: () => void;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+  testId: string;
   testimonial: TestimonialDefinition;
 }) {
   const initials = testimonial.author
@@ -537,19 +593,58 @@ function HomepageTestimonialCard({
     .slice(0, 2);
 
   return (
-    <article className="flex min-h-[12.5rem] w-[22rem] shrink-0 gap-4 rounded-[1.75rem] border border-[color-mix(in_oklab,var(--website-line)_78%,var(--website-accent)_22%)] bg-[color-mix(in_oklab,var(--website-surface)_92%,transparent)] px-5 py-5 sm:w-[28rem]">
-      <div className="flex size-14 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_oklab,var(--website-line)_74%,transparent)] bg-[color-mix(in_oklab,var(--website-ink)_8%,transparent)] text-sm tracking-[0.14em] text-[var(--website-ink)]">
+    <article
+      className={`group relative flex min-h-[12.5rem] w-[22rem] shrink-0 gap-4 overflow-hidden rounded-[1.75rem] border px-5 py-5 transition-[border-color,background-color,box-shadow] duration-300 sm:w-[28rem] ${
+        isHighlighted
+          ? "border-[color-mix(in_oklab,var(--website-accent)_60%,var(--website-line))] bg-[color-mix(in_oklab,var(--website-surface)_78%,var(--website-accent-soft))] shadow-[0_34px_90px_-46px_var(--website-accent)]"
+          : "border-[color-mix(in_oklab,var(--website-line)_78%,var(--website-accent)_22%)] bg-[color-mix(in_oklab,var(--website-surface)_92%,transparent)] hover:border-[color-mix(in_oklab,var(--website-accent)_50%,var(--website-line))] hover:bg-[color-mix(in_oklab,var(--website-surface)_84%,var(--website-accent-soft))] hover:shadow-[0_28px_70px_-44px_var(--website-accent)]"
+      }`}
+      data-highlighted={isHighlighted ? "true" : "false"}
+      data-testid={testId}
+      onBlur={onBlur}
+      onFocus={onFocus}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      tabIndex={0}
+    >
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-x-10 -bottom-8 h-20 rounded-full blur-2xl transition-opacity duration-300 ${
+          isHighlighted
+            ? "bg-[color-mix(in_oklab,var(--website-accent)_38%,transparent)] opacity-100"
+            : "bg-[color-mix(in_oklab,var(--website-accent)_28%,transparent)] opacity-0"
+        }`}
+      />
+      <div className="relative flex size-14 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_oklab,var(--website-line)_74%,transparent)] bg-[color-mix(in_oklab,var(--website-ink)_8%,transparent)] text-sm tracking-[0.14em] text-[var(--website-ink)]">
         {initials}
       </div>
-      <div className="min-w-0">
-        <p className="text-[1.2rem] leading-8 tracking-[-0.03em] text-[var(--website-muted)] sm:text-[1.35rem]">
+      <div className="relative min-w-0">
+        <p
+          className={`text-[1.2rem] leading-8 tracking-[-0.03em] sm:text-[1.35rem] ${
+            isHighlighted
+              ? "text-[var(--website-ink)]"
+              : "text-[var(--website-muted)]"
+          }`}
+        >
           {testimonial.quote}
         </p>
         <div className="mt-5 space-y-1.5">
-          <p className="text-base text-[var(--website-accent)]">
+          <p
+            className={`text-base transition-colors duration-300 ${
+              isHighlighted
+                ? "text-[color-mix(in_oklab,var(--website-accent)_88%,white_12%)]"
+                : "text-[var(--website-accent)]"
+            }`}
+          >
             {testimonial.handle}
           </p>
-          <p className="text-[0.8rem] leading-6 text-[var(--website-muted)]">
+          <p
+            className={`text-[0.8rem] leading-6 transition-colors duration-300 ${
+              isHighlighted
+                ? "text-[color-mix(in_oklab,var(--website-muted)_88%,white_12%)]"
+                : "text-[var(--website-muted)]"
+            }`}
+          >
             {testimonial.author}
             {" · "}
             {testimonial.role}
@@ -714,10 +809,6 @@ function scrollToDownloadSection(behavior: ScrollBehavior) {
     ?.scrollIntoView({ behavior, block: "start" });
 }
 
-function buildDownloadRequestHref(label: string) {
-  return `mailto:feedback@linea.app?subject=${encodeURIComponent(`Rekna Download — ${label}`)}`;
-}
-
 function detectDownloadFamily(): DownloadFamily {
   const browserNavigator = window.navigator as Navigator & {
     userAgentData?: { platform?: string };
@@ -740,10 +831,6 @@ function detectDownloadFamily(): DownloadFamily {
     return "macos";
   }
 
-  if (platformText.includes("win")) {
-    return "windows";
-  }
-
   if (platformText.includes("linux") || platformText.includes("x11")) {
     return "linux";
   }
@@ -752,10 +839,6 @@ function detectDownloadFamily(): DownloadFamily {
 }
 
 function getDefaultDownloadVariant(family: DownloadFamily) {
-  if (family === "windows") {
-    return downloadVariants.find((variant) => variant.id === "windows-x64")!;
-  }
-
   if (family === "linux") {
     return downloadVariants.find((variant) => variant.id === "linux-x64")!;
   }
@@ -766,10 +849,6 @@ function getDefaultDownloadVariant(family: DownloadFamily) {
 function getDownloadFamilyLabel(family: DownloadFamily) {
   if (family === "macos") {
     return "macOS";
-  }
-
-  if (family === "windows") {
-    return "Windows";
   }
 
   if (family === "linux") {

@@ -2,6 +2,7 @@
   "name": "@linea/desktop",
   "private": true,
   "type": "module",
+  "version": "0.1.0",
   "scripts": {
     "build:renderer": "vite build --config ../../vite.config.ts",
     "dev": "bun run build:renderer && LINEA_DISABLE_NATIVE_COMPLETION_OVERLAY=1 electrobun dev",

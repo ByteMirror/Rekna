@@ -7,6 +7,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { JSDOM } from "jsdom";
+import { REKNA_GITHUB_LATEST_DOWNLOAD_BASE_URL } from "@linea/shared";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {
   pretendToBeVisual: true,
@@ -87,8 +88,8 @@ describe("Website", () => {
       expect(getByTestId("download-cta").textContent).toContain(
         "Download for macOS (Apple Silicon)"
       );
-      expect(getByTestId("download-cta").getAttribute("href")).toContain(
-        "macOS%20(Apple%20Silicon)"
+      expect(getByTestId("download-cta").getAttribute("href")).toBe(
+        `${REKNA_GITHUB_LATEST_DOWNLOAD_BASE_URL}/stable-macos-arm64-Rekna.dmg`
       );
       expect(getByTestId("detected-download-platform").textContent).toContain(
         "macOS detected"
@@ -105,10 +106,18 @@ describe("Website", () => {
 
       expect(
         (await findByTestId("download-option-macos-arm64")).getAttribute("href")
-      ).toContain("macOS%20(Apple%20Silicon)");
-      expect(await findByTestId("download-option-macos-x64")).toBeTruthy();
-      expect(await findByTestId("download-option-windows-x64")).toBeTruthy();
+      ).toBe(
+        `${REKNA_GITHUB_LATEST_DOWNLOAD_BASE_URL}/stable-macos-arm64-Rekna.dmg`
+      );
       expect(await findByTestId("download-option-linux-x64")).toBeTruthy();
+      expect(
+        window.document.querySelector('[data-testid="download-option-macos-x64"]')
+      ).toBeNull();
+      expect(
+        window.document.querySelector(
+          '[data-testid="download-option-windows-x64"]'
+        )
+      ).toBeNull();
     } finally {
       restoreNavigatorSnapshot();
       cleanup();
@@ -124,7 +133,7 @@ describe("Website", () => {
     try {
       const { Website } = await import("./Website");
       const { container, getAllByText, getByRole, getByTestId, getByText } =
-        render(<Website featureCycleMs={20} />, {
+        render(<Website featureCycleMs={100} />, {
           container: window.document.body,
         });
       const websiteShell = container.firstElementChild as HTMLDivElement;
@@ -147,6 +156,9 @@ describe("Website", () => {
       expect(headerIcon.className.includes("size-12")).toBe(true);
       expect(getByRole("heading", { level: 1, name: "Rekna" })).toBeTruthy();
       expect(getByText("Plain text. Exact totals.")).toBeTruthy();
+      expect(
+        getByRole("link", { name: "GitHub" }).getAttribute("href")
+      ).toBe("https://github.com/ByteMirror/Rekna");
       const testimonialSection = getByTestId("testimonial-section");
       const testimonialSurface = testimonialSection.children[1] as HTMLElement;
 
@@ -168,6 +180,17 @@ describe("Website", () => {
         getByTestId("testimonial-lane-right").getAttribute("data-direction")
       ).toBe("right");
       expect(
+        getByTestId("testimonial-lane-left").getAttribute("data-paused")
+      ).toBe("false");
+      expect(
+        getByTestId("testimonial-lane-right").getAttribute("data-paused")
+      ).toBe("false");
+      expect(
+        getByTestId(
+          "testimonial-card-testimonial-lane-left-consulting-pricing-0"
+        ).getAttribute("data-highlighted")
+      ).toBe("false");
+      expect(
         getAllByText("The fastest way to price ideas").length
       ).toBeGreaterThan(0);
       expect(getAllByText("Fewer spreadsheet handoffs").length).toBeGreaterThan(
@@ -176,6 +199,59 @@ describe("Website", () => {
       expect(
         getAllByText("Date math finally feels native").length
       ).toBeGreaterThan(0);
+
+      await act(async () => {
+        fireEvent.mouseEnter(
+          getByTestId(
+            "testimonial-card-testimonial-lane-left-consulting-pricing-0"
+          )
+        );
+      });
+
+      expect(
+        getByTestId("testimonial-lane-left").getAttribute("data-paused")
+      ).toBe("true");
+      expect(
+        getByTestId("testimonial-lane-right").getAttribute("data-paused")
+      ).toBe("false");
+      expect(
+        getByTestId(
+          "testimonial-card-testimonial-lane-left-consulting-pricing-0"
+        ).getAttribute("data-highlighted")
+      ).toBe("true");
+      expect(
+        getByTestId(
+          "testimonial-card-testimonial-lane-left-consulting-pricing-0"
+        ).className.includes("-translate-y-1")
+      ).toBe(false);
+      expect(
+        getByTestId(
+          "testimonial-card-testimonial-lane-left-consulting-pricing-0"
+        ).className.includes("hover:-translate-y-0.5")
+      ).toBe(false);
+      expect(
+        getByTestId(
+          "testimonial-card-testimonial-lane-right-client-pricing-0"
+        ).getAttribute("data-highlighted")
+      ).toBe("false");
+
+      await act(async () => {
+        fireEvent.mouseLeave(
+          getByTestId(
+            "testimonial-card-testimonial-lane-left-consulting-pricing-0"
+          )
+        );
+      });
+
+      expect(
+        getByTestId("testimonial-lane-left").getAttribute("data-paused")
+      ).toBe("false");
+      expect(
+        getByTestId(
+          "testimonial-card-testimonial-lane-left-consulting-pricing-0"
+        ).getAttribute("data-highlighted")
+      ).toBe("false");
+
       expect(getByTestId("download-section")).toBeTruthy();
       expect(getByRole("link", { name: "Download" }).getAttribute("href")).toBe(
         "#download"
@@ -213,7 +289,7 @@ describe("Website", () => {
       expect(tabs[0]?.getAttribute("aria-pressed")).toBe("true");
       expect(unitsProgress.getAttribute("data-active")).toBe("true");
       expect(unitsProgress.style.animationName).toBe("websiteFeatureProgress");
-      expect(unitsProgress.style.animationDuration).toBe("20ms");
+      expect(unitsProgress.style.animationDuration).toBe("100ms");
       expect(memoryProgress.getAttribute("data-active")).toBe("false");
       expect(searchProgress.getAttribute("data-active")).toBe("false");
       expect(getByTestId("feature-media-title").textContent).toBe(
@@ -221,7 +297,7 @@ describe("Website", () => {
       );
 
       await act(async () => {
-        await new Promise((resolve) => window.setTimeout(resolve, 30));
+        await new Promise((resolve) => window.setTimeout(resolve, 120));
       });
 
       await waitFor(() => {
@@ -230,7 +306,7 @@ describe("Website", () => {
         );
       });
       expect(memoryProgress.getAttribute("data-active")).toBe("true");
-      expect(memoryProgress.style.animationDuration).toBe("20ms");
+      expect(memoryProgress.style.animationDuration).toBe("100ms");
       expect(unitsProgress.getAttribute("data-active")).toBe("false");
 
       const searchTab = tabs[2];
@@ -323,11 +399,12 @@ describe("Website", () => {
       });
       expect(window.location.pathname).toBe("/");
       expect(window.location.hash).toBe("#download");
-      expect(getByTestId("download-cta").textContent).toContain(
-        "Download for Windows (x64)"
-      );
+      expect(getByTestId("download-cta").textContent).toContain("Download for");
       expect(getByTestId("download-cta").getAttribute("href")).toBe(
-        "mailto:feedback@linea.app?subject=Rekna%20Download%20%E2%80%94%20Windows%20(x64)"
+        `${REKNA_GITHUB_LATEST_DOWNLOAD_BASE_URL}/stable-macos-arm64-Rekna.dmg`
+      );
+      expect(getByTestId("detected-download-platform").textContent).toContain(
+        "Default build selected"
       );
     } finally {
       restoreNavigatorSnapshot();
