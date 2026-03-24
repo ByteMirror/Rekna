@@ -1,6 +1,6 @@
 # Rekna
 
-Rekna is a sheet-style calculator for macOS inspired by Numi. You type expressions in plain text and Rekna evaluates each row beside the editor.
+Rekna is a sheet-style calculator which is planned to release for all major desktop operating systems. You type expressions in plain text and Rekna evaluates each row beside the editor.
 
 ## Supported Features
 
