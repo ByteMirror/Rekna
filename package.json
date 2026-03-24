@@ -6,8 +6,8 @@
   "scripts": {
     "build:renderer": "cd apps/desktop && ./node_modules/.bin/vite build --config ../../vite.config.ts",
     "build:website": "bun run build:renderer",
-    "dev": "cd apps/desktop && ./node_modules/.bin/vite build --config ../../vite.config.ts && ./node_modules/.bin/electrobun dev",
-    "dev:hmr": "cd apps/desktop && ./node_modules/.bin/concurrently \"./node_modules/.bin/vite --config ../../vite.config.ts --port 5173\" \"./node_modules/.bin/electrobun dev --watch\"",
+    "dev": "cd apps/desktop && ./node_modules/.bin/vite build --config ../../vite.config.ts && LINEA_DISABLE_NATIVE_COMPLETION_OVERLAY=1 ./node_modules/.bin/electrobun dev",
+    "dev:hmr": "cd apps/desktop && ./node_modules/.bin/concurrently \"./node_modules/.bin/vite --config ../../vite.config.ts --port 5173\" \"LINEA_DISABLE_NATIVE_COMPLETION_OVERLAY=1 ./node_modules/.bin/electrobun dev --watch\"",
     "lint": "biome check .",
     "native:ios": "bun run --cwd apps/native ios",
     "native:lint": "bun run --cwd apps/native lint",
