@@ -252,13 +252,17 @@ describe("Website", () => {
       );
 
       expect(tabs[0]?.className.includes("rounded-[1rem]")).toBe(true);
+      expect(tabs[0]?.className.includes("flex-col")).toBe(true);
       expect(tabs[0]?.className.includes("items-center")).toBe(true);
       expect(tabs[0]?.className.includes("text-center")).toBe(true);
       expect(tabs[0]?.className.includes("bg-[var(--website-ink)]")).toBe(true);
       expect(tabs[0]?.className.includes("text-[var(--website-bg)]")).toBe(
         true
       );
-      expect(tabs[0]?.className.includes("p-4")).toBe(true);
+      expect(tabs[0]?.className.includes("gap-3")).toBe(true);
+      expect(tabs[0]?.className.includes("pt-4")).toBe(true);
+      expect(tabs[0]?.className.includes("pb-3")).toBe(true);
+      expect(tabs[0]?.className.includes("p-4")).toBe(false);
       expect(tabs[0]?.getAttribute("aria-pressed")).toBe("true");
       expect(plainTextProgress.getAttribute("data-active")).toBe("true");
       expect(plainTextProgress.style.animationName).toBe(
@@ -397,11 +401,28 @@ describe("Website", () => {
       expect(
         getByTestId(
           "feature-tab-title-plain-text-calculations"
-        ).className.includes("text-[1.35rem]")
+        ).className.includes("px-4")
       ).toBe(true);
       expect(
-        plainTextProgress.parentElement?.className.includes("bottom-3")
+        getByTestId(
+          "feature-tab-title-plain-text-calculations"
+        ).className.includes("text-[1.35rem]")
       ).toBe(true);
+      expect(plainTextProgress.parentElement?.className.includes("w-full")).toBe(
+        true
+      );
+      expect(
+        plainTextProgress.parentElement?.className.includes("h-[3px]")
+      ).toBe(true);
+      expect(
+        plainTextProgress.parentElement?.className.includes("absolute")
+      ).toBe(false);
+      expect(
+        plainTextProgress.parentElement?.className.includes("bottom-3")
+      ).toBe(false);
+      expect(
+        plainTextProgress.parentElement?.className.includes("w-24")
+      ).toBe(false);
       expect(tabs[0]?.textContent?.trim()).toBe("Plain Text Calculations");
       expect(tabs[1]?.textContent?.trim()).toBe("Units & Currency");
       expect(tabs[2]?.textContent?.trim()).toBe("Connected Sheets");

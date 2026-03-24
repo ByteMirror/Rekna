@@ -376,7 +376,7 @@ function Homepage({
                   <button
                     aria-label={feature.title}
                     aria-pressed={isActive}
-                    className={`group relative flex w-full items-center justify-center overflow-hidden rounded-[1rem] border p-4 text-center transition-[transform,border-color,background-color,color,box-shadow] duration-200 ${
+                    className={`group relative flex w-full flex-col items-center justify-center gap-3 overflow-hidden rounded-[1rem] border pt-4 pb-3 text-center transition-[transform,border-color,background-color,color,box-shadow] duration-200 ${
                       isActive
                         ? "border-[var(--website-ink)] bg-[var(--website-ink)] text-[var(--website-bg)] shadow-[0_24px_60px_-48px_rgba(255,255,255,0.1)]"
                         : "border-[var(--website-line)] bg-[color-mix(in_oklab,var(--website-surface)_72%,transparent)] text-[var(--website-muted)] hover:-translate-y-0.5 hover:border-[color-mix(in_oklab,var(--website-ink)_18%,var(--website-line))] hover:text-[var(--website-ink)]"
@@ -387,14 +387,14 @@ function Homepage({
                     type="button"
                   >
                     <span
-                      className="block min-w-0 text-[1.35rem] leading-7 tracking-[-0.03em] text-current sm:text-[1.5rem]"
+                      className="block min-w-0 px-4 text-[1.35rem] leading-7 tracking-[-0.03em] text-current sm:text-[1.5rem]"
                       data-testid={`feature-tab-title-${feature.id}`}
                     >
                       {feature.title}
                     </span>
                     <span
                       aria-hidden="true"
-                      className={`absolute bottom-3 left-1/2 h-1 w-24 -translate-x-1/2 overflow-hidden rounded-full ${
+                      className={`h-[3px] w-full overflow-hidden rounded-full ${
                         isActive
                           ? "bg-[color-mix(in_oklab,var(--website-bg)_18%,transparent)]"
                           : "bg-[var(--website-ink-soft)]"
