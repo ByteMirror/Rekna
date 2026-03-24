@@ -1,0 +1,17 @@
+.DS_Store
+*.log
+
+/node_modules/
+**/node_modules/
+
+/build/
+/artifacts/
+/tmp/
+
+/apps/desktop/build/
+/apps/desktop/dist/
+/apps/mobile/dist/
+/apps/native/.expo/
+/apps/native/dist-ios-export/
+/apps/native/ios/Pods/
+/apps/native/ios/build/

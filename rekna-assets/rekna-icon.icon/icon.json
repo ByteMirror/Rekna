@@ -1,0 +1,62 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "display-p3:0.23922,0.43529,0.40784,1.00000",
+      "display-p3:0.31765,0.57647,0.54510,1.00000"
+    ],
+    "orientation" : {
+      "start" : {
+        "x" : 0.5,
+        "y" : 0
+      },
+      "stop" : {
+        "x" : 0.5,
+        "y" : 0.7
+      }
+    }
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "blend-mode" : "normal",
+          "fill" : "automatic",
+          "glass" : true,
+          "image-name" : "rekna 2.svg",
+          "name" : "rekna 2",
+          "opacity" : 0.9,
+          "position" : {
+            "scale" : 0.8,
+            "translation-in-points" : [
+              2.63846153846157,
+              34
+            ]
+          }
+        },
+        {
+          "hidden" : true,
+          "image-name" : "rekna 2.png",
+          "name" : "rekna 2",
+          "position" : {
+            "scale" : 0.8,
+            "translation-in-points" : [
+              0,
+              45.145802974939784
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : "shared"
+  }
+}

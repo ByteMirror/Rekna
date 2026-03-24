@@ -1,0 +1,12 @@
+{
+  "name": "@linea/calc-engine",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "mathjs": "^14.7.0",
+    "temporal-polyfill": "^0.3.0"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "linea",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "build:renderer": "cd apps/desktop && ./node_modules/.bin/vite build --config ../../vite.config.ts",
+    "dev": "cd apps/desktop && ./node_modules/.bin/vite build --config ../../vite.config.ts && LINEA_DISABLE_NATIVE_COMPLETION_OVERLAY=1 ./node_modules/.bin/electrobun dev",
+    "dev:hmr": "cd apps/desktop && ./node_modules/.bin/concurrently \"./node_modules/.bin/vite --config ../../vite.config.ts --port 5173\" \"LINEA_DISABLE_NATIVE_COMPLETION_OVERLAY=1 ./node_modules/.bin/electrobun dev --watch\"",
+    "lint": "biome check .",
+    "native:ios": "bun run --cwd apps/native ios",
+    "native:lint": "bun run --cwd apps/native lint",
+    "native:prebuild:ios": "bun run --cwd apps/native prebuild:ios",
+    "native:start": "bun run --cwd apps/native start",
+    "native:typecheck": "./node_modules/.bin/tsc --noEmit -p apps/native/tsconfig.json",
+    "native:web": "bun run --cwd apps/native web",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@tailwindcss/vite": "^4.1.13",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/bun": "^1.3.2",
+    "@types/react": "^19.1.11",
+    "@types/react-dom": "^19.1.7",
+    "@types/three": "^0.179.0",
+    "@vitejs/plugin-react": "^5.0.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "electrobun": "^1.16.0",
+    "jsdom": "^29.0.1",
+    "lucide-react": "^0.542.0",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^4.1.13",
+    "tw-animate-css": "^1.3.8",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3"
+  }
+}
