@@ -1798,7 +1798,7 @@ describe("App", () => {
 
     try {
       const { App } = await import("./App");
-      const { getByRole, queryByLabelText, queryByRole } = render(
+      const { getByRole, getByText, queryByLabelText, queryByRole } = render(
         <App EditorComponent={FakeEditor} request={request} />,
         {
           container: window.document.body,
