@@ -7,7 +7,6 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { JSDOM } from "jsdom";
-import { REKNA_GITHUB_LATEST_DOWNLOAD_BASE_URL } from "@linea/shared";
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {
   pretendToBeVisual: true,
@@ -44,6 +43,19 @@ Object.assign(window.HTMLElement.prototype, {
 });
 
 const originalScrollIntoView = window.HTMLElement.prototype.scrollIntoView;
+const originalFetch = globalThis.fetch;
+const legacyReleaseAssets = [
+  {
+    browser_download_url:
+      "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-macos-arm64-Rekna.dmg",
+    name: "stable-macos-arm64-Rekna.dmg",
+  },
+  {
+    browser_download_url:
+      "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-linux-x64-Rekna-Setup.tar.gz",
+    name: "stable-linux-x64-Rekna-Setup.tar.gz",
+  },
+];
 
 afterEach(() => {
   Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", {
@@ -51,11 +63,13 @@ afterEach(() => {
     value: originalScrollIntoView,
     writable: true,
   });
+  globalThis.fetch = originalFetch;
 });
 
 describe("Website", () => {
   test("prefers the detected platform for the primary download CTA and exposes all variants", async () => {
     window.history.replaceState({}, "", "/");
+    mockLatestReleaseAssets(legacyReleaseAssets);
     setNavigatorSnapshot({
       platform: "MacIntel",
       userAgent:
@@ -88,9 +102,11 @@ describe("Website", () => {
       expect(getByTestId("download-cta").textContent).toContain(
         "Download for macOS (Apple Silicon)"
       );
-      expect(getByTestId("download-cta").getAttribute("href")).toBe(
-        `${REKNA_GITHUB_LATEST_DOWNLOAD_BASE_URL}/stable-macos-arm64-Rekna.dmg`
-      );
+      await waitFor(() => {
+        expect(getByTestId("download-cta").getAttribute("href")).toBe(
+          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-macos-arm64-Rekna.dmg"
+        );
+      });
       expect(getByTestId("detected-download-platform").textContent).toContain(
         "macOS detected"
       );
@@ -107,7 +123,7 @@ describe("Website", () => {
       expect(
         (await findByTestId("download-option-macos-arm64")).getAttribute("href")
       ).toBe(
-        `${REKNA_GITHUB_LATEST_DOWNLOAD_BASE_URL}/stable-macos-arm64-Rekna.dmg`
+        "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-macos-arm64-Rekna.dmg"
       );
       expect(await findByTestId("download-option-linux-x64")).toBeTruthy();
       expect(
@@ -127,13 +143,81 @@ describe("Website", () => {
     }
   });
 
-  test("renders the homepage as a minimal feature carousel with three vertical tabs", async () => {
+  test("upgrades download links to cleaner versioned release asset names when available", async () => {
     window.history.replaceState({}, "", "/");
+    mockLatestReleaseAssets([
+      {
+        browser_download_url:
+          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/stable-macos-arm64-Rekna.dmg",
+        name: "stable-macos-arm64-Rekna.dmg",
+      },
+      {
+        browser_download_url:
+          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-macOS-arm64.dmg",
+        name: "Rekna-0.1.3-macOS-arm64.dmg",
+      },
+      {
+        browser_download_url:
+          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-linux-x64.tar.gz",
+        name: "Rekna-0.1.3-linux-x64.tar.gz",
+      },
+    ]);
+    setNavigatorSnapshot({
+      platform: "MacIntel",
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
+    });
 
     try {
       const { Website } = await import("./Website");
-      const { container, getAllByText, getByRole, getByTestId, getByText } =
-        render(<Website featureCycleMs={1000} />, {
+      const { findByTestId, getByTestId, getByRole } = render(<Website />, {
+        container: window.document.body,
+      });
+
+      await waitFor(() => {
+        expect(getByTestId("download-cta").getAttribute("href")).toBe(
+          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-macOS-arm64.dmg"
+        );
+      });
+
+      await act(async () => {
+        fireEvent.pointerDown(
+          getByRole("button", { name: "Choose a different download" })
+        );
+        fireEvent.click(
+          getByRole("button", { name: "Choose a different download" })
+        );
+      });
+
+      expect(
+        (await findByTestId("download-option-linux-x64")).getAttribute("href")
+      ).toBe(
+        "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-linux-x64.tar.gz"
+      );
+    } finally {
+      restoreNavigatorSnapshot();
+      cleanup();
+      delete document.body.dataset.rootView;
+      window.document.body.innerHTML = "";
+      window.history.replaceState({}, "", "/");
+    }
+  });
+
+  test("renders the homepage as a minimal feature carousel with three vertical tabs", async () => {
+    window.history.replaceState({}, "", "/");
+    mockLatestReleaseAssets(legacyReleaseAssets);
+
+    try {
+      const { Website } = await import("./Website");
+      const {
+        container,
+        getAllByText,
+        getByRole,
+        getByTestId,
+        getByText,
+        queryByText,
+      } =
+        render(<Website featureCycleMs={100} />, {
           container: window.document.body,
         });
       const websiteShell = container.firstElementChild as HTMLDivElement;
@@ -141,13 +225,39 @@ describe("Website", () => {
       const featureTabsShell = getByTestId("feature-tabs-shell");
       const headerIcon = getByRole("img", { name: "Rekna desktop app icon" });
       const tabs = [
-        getByRole("tab", { name: "Units and FX" }),
-        getByRole("tab", { name: "Sheet memory" }),
-        getByRole("tab", { name: "Quiet search" }),
+        getByRole("tab", { name: "Plain Text Calculations" }),
+        getByRole("tab", { name: "Units & Currency" }),
+        getByRole("tab", { name: "Connected Sheets" }),
       ];
-      const unitsProgress = getByTestId("feature-tab-progress-units-and-fx");
-      const memoryProgress = getByTestId("feature-tab-progress-sheet-memory");
-      const searchProgress = getByTestId("feature-tab-progress-quiet-search");
+      const plainTextProgress = getByTestId(
+        "feature-tab-progress-plain-text-calculations"
+      );
+      const unitsProgress = getByTestId(
+        "feature-tab-progress-units-and-currency"
+      );
+      const connectedSheetsProgress = getByTestId(
+        "feature-tab-progress-connected-sheets"
+      );
+
+      expect(tabs[0]?.className.includes("rounded-[1rem]")).toBe(true);
+      expect(tabs[0]?.className.includes("items-center")).toBe(true);
+      expect(tabs[0]?.className.includes("text-center")).toBe(true);
+      expect(tabs[0]?.className.includes("bg-[var(--website-ink)]")).toBe(true);
+      expect(tabs[0]?.className.includes("text-[var(--website-bg)]")).toBe(
+        true
+      );
+      expect(tabs[0]?.className.includes("p-4")).toBe(true);
+      expect(tabs[0]?.getAttribute("aria-pressed")).toBe("true");
+      expect(plainTextProgress.getAttribute("data-active")).toBe("true");
+      expect(plainTextProgress.style.animationName).toBe(
+        "websiteFeatureProgress"
+      );
+      expect(plainTextProgress.style.animationDuration).toBe("100ms");
+      expect(unitsProgress.getAttribute("data-active")).toBe("false");
+      expect(connectedSheetsProgress.getAttribute("data-active")).toBe("false");
+      expect(getByTestId("feature-media-title").textContent).toBe(
+        "Plain Text Calculations"
+      );
 
       expect(document.body.dataset.rootView).toBe("website");
       expect(websiteShell.style.getPropertyValue("--website-accent")).toBe(
@@ -155,7 +265,12 @@ describe("Website", () => {
       );
       expect(headerIcon.className.includes("size-12")).toBe(true);
       expect(getByRole("heading", { level: 1, name: "Rekna" })).toBeTruthy();
-      expect(getByText("Plain text. Exact totals.")).toBeTruthy();
+      expect(
+        getByText(
+          "A beautiful open-source calculator that lives in markdown files and keeps you in flow."
+        )
+      ).toBeTruthy();
+      expect(queryByText("Plain text. Exact totals.")).toBeNull();
       expect(
         getByRole("link", { name: "GitHub" }).getAttribute("href")
       ).toBe("https://github.com/ByteMirror/Rekna");
@@ -267,66 +382,49 @@ describe("Website", () => {
       expect(getByTestId("feature-tabs").className.includes("gap-5")).toBe(
         true
       );
-      expect(tabs[0]?.className.includes("rounded-[1rem]")).toBe(true);
-      expect(tabs[0]?.className.includes("items-center")).toBe(true);
-      expect(tabs[0]?.className.includes("text-center")).toBe(true);
-      expect(tabs[0]?.className.includes("bg-[var(--website-ink)]")).toBe(true);
-      expect(tabs[0]?.className.includes("text-[var(--website-bg)]")).toBe(
-        true
-      );
-      expect(tabs[0]?.className.includes("p-4")).toBe(true);
       expect(
-        getByTestId("feature-tab-title-units-and-fx").className.includes(
-          "text-[1.35rem]"
-        )
+        getByTestId(
+          "feature-tab-title-plain-text-calculations"
+        ).className.includes("text-[1.35rem]")
       ).toBe(true);
-      expect(unitsProgress.parentElement?.className.includes("bottom-3")).toBe(
-        true
-      );
-      expect(tabs[0]?.textContent?.trim()).toBe("Units and FX");
-      expect(tabs[1]?.textContent?.trim()).toBe("Sheet memory");
-      expect(tabs[2]?.textContent?.trim()).toBe("Quiet search");
-      expect(tabs[0]?.getAttribute("aria-pressed")).toBe("true");
-      expect(unitsProgress.getAttribute("data-active")).toBe("true");
-      expect(unitsProgress.style.animationName).toBe("websiteFeatureProgress");
-      expect(unitsProgress.style.animationDuration).toBe("1000ms");
-      expect(memoryProgress.getAttribute("data-active")).toBe("false");
-      expect(searchProgress.getAttribute("data-active")).toBe("false");
-      expect(getByTestId("feature-media-title").textContent).toBe(
-        "Units and FX"
-      );
+      expect(
+        plainTextProgress.parentElement?.className.includes("bottom-3")
+      ).toBe(true);
+      expect(tabs[0]?.textContent?.trim()).toBe("Plain Text Calculations");
+      expect(tabs[1]?.textContent?.trim()).toBe("Units & Currency");
+      expect(tabs[2]?.textContent?.trim()).toBe("Connected Sheets");
 
       await act(async () => {
-        await new Promise((resolve) => window.setTimeout(resolve, 1100));
+        await new Promise((resolve) => window.setTimeout(resolve, 120));
       });
 
       await waitFor(() => {
         expect(getByTestId("feature-media-title").textContent).toBe(
-          "Sheet memory"
+          "Units & Currency"
         );
       });
-      expect(memoryProgress.getAttribute("data-active")).toBe("true");
-      expect(memoryProgress.style.animationDuration).toBe("1000ms");
-      expect(unitsProgress.getAttribute("data-active")).toBe("false");
+      expect(unitsProgress.getAttribute("data-active")).toBe("true");
+      expect(unitsProgress.style.animationDuration).toBe("100ms");
+      expect(plainTextProgress.getAttribute("data-active")).toBe("false");
 
-      const searchTab = tabs[2];
-      if (!searchTab) {
-        throw new Error("Quiet search tab was not rendered");
+      const connectedSheetsTab = tabs[2];
+      if (!connectedSheetsTab) {
+        throw new Error("Connected Sheets tab was not rendered");
       }
 
       await act(async () => {
-        fireEvent.click(searchTab);
+        fireEvent.click(connectedSheetsTab);
       });
 
-      expect(searchTab.getAttribute("aria-pressed")).toBe("true");
-      expect(searchProgress.getAttribute("data-active")).toBe("true");
+      expect(connectedSheetsTab.getAttribute("aria-pressed")).toBe("true");
+      expect(connectedSheetsProgress.getAttribute("data-active")).toBe("true");
       expect(getByTestId("feature-media-title").textContent).toBe(
-        "Quiet search"
+        "Connected Sheets"
       );
       expect(getByTestId("feature-media").getAttribute("data-feature")).toBe(
-        "quiet-search"
+        "connected-sheets"
       );
-      expect(getByRole("img", { name: "Quiet search preview" })).toBeTruthy();
+      expect(getByRole("img", { name: "Connected Sheets preview" })).toBeTruthy();
       expect(getByRole("link", { name: "Download" }).textContent).toBe(
         "Download"
       );
@@ -340,6 +438,7 @@ describe("Website", () => {
 
   test("clicking the header download link scrolls to the homepage download section", async () => {
     window.history.replaceState({}, "", "/");
+    mockLatestReleaseAssets(legacyReleaseAssets);
     setNavigatorSnapshot({
       platform: "Win32",
       userAgent:
@@ -400,9 +499,11 @@ describe("Website", () => {
       expect(window.location.pathname).toBe("/");
       expect(window.location.hash).toBe("#download");
       expect(getByTestId("download-cta").textContent).toContain("Download for");
-      expect(getByTestId("download-cta").getAttribute("href")).toBe(
-        `${REKNA_GITHUB_LATEST_DOWNLOAD_BASE_URL}/stable-macos-arm64-Rekna.dmg`
-      );
+      await waitFor(() => {
+        expect(getByTestId("download-cta").getAttribute("href")).toBe(
+          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-macos-arm64-Rekna.dmg"
+        );
+      });
       expect(getByTestId("detected-download-platform").textContent).toContain(
         "Default build selected"
       );
@@ -436,6 +537,15 @@ function setNavigatorSnapshot({
     configurable: true,
     value: userAgent,
   });
+}
+
+function mockLatestReleaseAssets(
+  assets: Array<{ browser_download_url: string; name: string }>
+) {
+  globalThis.fetch = (async () => ({
+    json: async () => ({ assets }),
+    ok: true,
+  })) as unknown as typeof fetch;
 }
 
 function restoreNavigatorSnapshot() {

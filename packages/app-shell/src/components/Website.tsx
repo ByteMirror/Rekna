@@ -1,9 +1,12 @@
 import { ArrowUpRight, ChevronDown } from "lucide-react";
 import {
-  buildLatestReleaseAssetUrl,
   desktopDownloadVariants as sharedDesktopDownloadVariants,
+  REKNA_GITHUB_LATEST_RELEASE_API_URL,
   REKNA_GITHUB_REPOSITORY_URL,
   type DesktopDownloadFamily,
+  type DesktopDownloadVariantId,
+  type DesktopReleaseAsset,
+  resolveDesktopDownloadUrl,
 } from "@linea/shared";
 import type { CSSProperties, MouseEvent } from "react";
 import { useEffect, useState } from "react";
@@ -31,7 +34,7 @@ type DownloadFamily = DesktopDownloadFamily;
 type DownloadVariant = {
   family: Exclude<DownloadFamily, "unknown">;
   href: string;
-  id: "linux-x64" | "macos-arm64";
+  id: DesktopDownloadVariantId;
   label: string;
   note: string;
 };
@@ -76,37 +79,29 @@ const GITHUB_REPO_URL = REKNA_GITHUB_REPOSITORY_URL;
 
 const homepageFeatures: FeatureDefinition[] = [
   {
-    body: "Switch currencies and units inline while the result stays locked to the side.",
-    eyebrow: "Conversions",
-    id: "units-and-fx",
-    objectPosition: "52% 12%",
-    title: "Units and FX",
-  },
-  {
-    body: "Reuse totals and intermediate results naturally without turning the sheet into a spreadsheet.",
-    eyebrow: "Reuse values",
-    id: "sheet-memory",
+    body: "Write calculations in plain text and watch each line resolve instantly beside the editor.",
+    eyebrow: "Plain text",
+    id: "plain-text-calculations",
     objectPosition: "50% 48%",
-    title: "Sheet memory",
+    title: "Plain Text Calculations",
   },
   {
-    body: "Move through sheets fast enough that the calculation never loses momentum.",
-    eyebrow: "Find fast",
-    id: "quiet-search",
+    body: "Convert units and currencies inline, from metres and inches to teaspoons and exchange rates.",
+    eyebrow: "Convert inline",
+    id: "units-and-currency",
+    objectPosition: "52% 12%",
+    title: "Units & Currency",
+  },
+  {
+    body: "Export values from one sheet and import them into another so reusable totals stay connected.",
+    eyebrow: "Import & export",
+    id: "connected-sheets",
     objectPosition: "50% 82%",
-    title: "Quiet search",
+    title: "Connected Sheets",
   },
 ] as const;
 
-const downloadVariants: DownloadVariant[] = sharedDesktopDownloadVariants.map(
-  (variant) => ({
-    family: variant.family,
-    href: buildLatestReleaseAssetUrl(variant.assetFileName),
-    id: variant.id,
-    label: variant.label,
-    note: variant.note,
-  })
-);
+const fallbackDownloadVariants = buildDownloadVariants();
 
 const homepageTestimonials: TestimonialDefinition[] = [
   {
@@ -155,6 +150,9 @@ const homepageTestimonials: TestimonialDefinition[] = [
 
 export function Website({ featureCycleMs = 3200 }: WebsiteProps) {
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
+  const [downloadVariants, setDownloadVariants] = useState<DownloadVariant[]>(
+    fallbackDownloadVariants
+  );
 
   useEffect(() => {
     const previousRootView = document.body.dataset.rootView;
@@ -217,6 +215,22 @@ export function Website({ featureCycleMs = 3200 }: WebsiteProps) {
     };
   }, [featureCycleMs]);
 
+  useEffect(() => {
+    let isDisposed = false;
+
+    void loadDownloadVariants()
+      .then((resolvedDownloadVariants) => {
+        if (!isDisposed) {
+          setDownloadVariants(resolvedDownloadVariants);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isDisposed = true;
+    };
+  }, []);
+
   const activeFeature =
     homepageFeatures[activeFeatureIndex] ?? homepageFeatures[0];
 
@@ -269,6 +283,7 @@ export function Website({ featureCycleMs = 3200 }: WebsiteProps) {
         <Homepage
           activeFeature={activeFeature}
           activeFeatureIndex={activeFeatureIndex}
+          downloadVariants={downloadVariants}
           featureCycleMs={featureCycleMs}
           onFeatureSelect={setActiveFeatureIndex}
         />
@@ -316,11 +331,13 @@ function WebsiteHeader() {
 function Homepage({
   activeFeature,
   activeFeatureIndex,
+  downloadVariants,
   featureCycleMs,
   onFeatureSelect,
 }: {
   activeFeature: FeatureDefinition;
   activeFeatureIndex: number;
+  downloadVariants: DownloadVariant[];
   featureCycleMs: number;
   onFeatureSelect: (nextIndex: number) => void;
 }) {
@@ -331,17 +348,15 @@ function Homepage({
           className="mx-auto flex w-full max-w-[21rem] flex-col justify-center lg:mx-0 lg:min-h-[30rem]"
           data-testid="feature-column"
         >
-          <p className="text-[0.72rem] uppercase tracking-[0.22em] text-[var(--website-accent)]">
-            Rekna
-          </p>
           <h1
-            className="mt-4 text-5xl leading-[0.9] tracking-[-0.06em] sm:text-6xl"
+            className="text-5xl leading-[0.9] tracking-[-0.06em] sm:text-6xl"
             style={{ fontFamily: displayFont }}
           >
             Rekna
           </h1>
           <p className="mt-4 text-sm leading-7 text-[var(--website-muted)]">
-            Plain text. Exact totals.
+            A beautiful open-source calculator that lives in markdown files and
+            keeps you in flow.
           </p>
 
           <div
@@ -431,9 +446,9 @@ function Homepage({
                 style={{
                   objectPosition: activeFeature.objectPosition,
                   transform:
-                    activeFeature.id === "sheet-memory"
+                    activeFeature.id === "plain-text-calculations"
                       ? "scale(1.06)"
-                      : activeFeature.id === "quiet-search"
+                      : activeFeature.id === "connected-sheets"
                         ? "scale(1.04)"
                         : "scale(1)",
                 }}
@@ -448,7 +463,7 @@ function Homepage({
       </section>
 
       <HomepageTestimonials />
-      <HomepageDownloadSection />
+      <HomepageDownloadSection downloadVariants={downloadVariants} />
     </div>
   );
 }
@@ -655,9 +670,13 @@ function HomepageTestimonialCard({
   );
 }
 
-function HomepageDownloadSection() {
+function HomepageDownloadSection({
+  downloadVariants,
+}: {
+  downloadVariants: DownloadVariant[];
+}) {
   const detectedFamily = detectDownloadFamily();
-  const defaultVariant = getDefaultDownloadVariant(detectedFamily);
+  const defaultVariant = getDefaultDownloadVariant(detectedFamily, downloadVariants);
   const detectedPlatformLabel = getDownloadFamilyLabel(detectedFamily);
 
   return (
@@ -838,7 +857,40 @@ function detectDownloadFamily(): DownloadFamily {
   return "unknown";
 }
 
-function getDefaultDownloadVariant(family: DownloadFamily) {
+function buildDownloadVariants(assets?: DesktopReleaseAsset[]) {
+  return sharedDesktopDownloadVariants.map((variant) => ({
+    family: variant.family,
+    href: resolveDesktopDownloadUrl(variant.id, assets),
+    id: variant.id,
+    label: variant.label,
+    note: variant.note,
+  }));
+}
+
+async function loadDownloadVariants() {
+  if (typeof globalThis.fetch !== "function") {
+    return fallbackDownloadVariants;
+  }
+
+  const response = await globalThis.fetch(REKNA_GITHUB_LATEST_RELEASE_API_URL);
+
+  if (!response.ok) {
+    return fallbackDownloadVariants;
+  }
+
+  const release = (await response.json()) as {
+    assets?: DesktopReleaseAsset[];
+  };
+
+  return buildDownloadVariants(
+    Array.isArray(release.assets) ? release.assets : undefined
+  );
+}
+
+function getDefaultDownloadVariant(
+  family: DownloadFamily,
+  downloadVariants: DownloadVariant[]
+) {
   if (family === "linux") {
     return downloadVariants.find((variant) => variant.id === "linux-x64")!;
   }

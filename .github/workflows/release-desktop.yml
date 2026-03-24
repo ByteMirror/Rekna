@@ -52,11 +52,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - artifact_glob: apps/desktop/artifacts/stable-macos-arm64-*
+          - artifact_glob: apps/desktop/release-artifacts/*
             artifact_name: desktop-release-macos-arm64
             label: macOS arm64
             os: macos-latest
-          - artifact_glob: apps/desktop/artifacts/stable-linux-x64-*
+          - artifact_glob: apps/desktop/release-artifacts/*
             artifact_name: desktop-release-linux-x64
             label: Linux x64
             os: ubuntu-latest
@@ -82,6 +82,12 @@ jobs:
           REKNA_RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
         working-directory: apps/desktop
         run: ./node_modules/.bin/electrobun build --env=stable
+
+      - name: Stage release artifacts
+        env:
+          REKNA_RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+        working-directory: apps/desktop
+        run: bun run ../../scripts/release/stage-desktop-release-assets.ts
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4
