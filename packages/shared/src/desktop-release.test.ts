@@ -31,6 +31,9 @@ describe("desktop release helpers", () => {
     expect(buildDesktopDownloadAssetFileName("linux-x64", "0.1.2")).toBe(
       "Rekna-0.1.2-linux-x64.tar.gz"
     );
+    expect(buildDesktopDownloadAssetFileName("windows-x64", "0.1.2")).toBe(
+      "Rekna-0.1.2-windows-x64.zip"
+    );
   });
 
   test("prefers versioned release assets and falls back to legacy asset names", () => {
@@ -61,6 +64,23 @@ describe("desktop release helpers", () => {
       ])?.browser_download_url
     ).toBe(
       "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-linux-x64-Rekna-Setup.tar.gz"
+    );
+
+    expect(
+      findDesktopDownloadAsset("windows-x64", [
+        {
+          browser_download_url:
+            "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-win-x64-Rekna-Setup.zip",
+          name: "stable-win-x64-Rekna-Setup.zip",
+        },
+        {
+          browser_download_url:
+            "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/Rekna-0.1.2-windows-x64.zip",
+          name: "Rekna-0.1.2-windows-x64.zip",
+        },
+      ])?.browser_download_url
+    ).toBe(
+      "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/Rekna-0.1.2-windows-x64.zip"
     );
   });
 

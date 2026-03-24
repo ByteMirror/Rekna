@@ -9,21 +9,28 @@ export const REKNA_GITHUB_LATEST_RELEASE_API_URL = `https://api.github.com/repos
 
 export type DesktopDownloadFamily = "linux" | "macos" | "unknown";
 export type DesktopDownloadVariantId = "linux-x64" | "macos-arm64";
+export type DesktopReleaseFamily = Exclude<DesktopDownloadFamily, "unknown"> | "windows";
+export type DesktopReleaseVariantId = DesktopDownloadVariantId | "windows-x64";
 
 export type DesktopReleaseAsset = {
   browser_download_url: string;
   name: string;
 };
 
-export type DesktopDownloadVariant = {
+export type DesktopReleaseVariant = {
   assetFileName: string;
-  family: Exclude<DesktopDownloadFamily, "unknown">;
-  id: DesktopDownloadVariantId;
+  family: DesktopReleaseFamily;
+  id: DesktopReleaseVariantId;
   label: string;
   note: string;
 };
 
-export const desktopDownloadVariants: DesktopDownloadVariant[] = [
+export type DesktopDownloadVariant = DesktopReleaseVariant & {
+  family: Exclude<DesktopReleaseFamily, "windows">;
+  id: DesktopDownloadVariantId;
+};
+
+export const desktopReleaseVariants: DesktopReleaseVariant[] = [
   {
     assetFileName: "stable-macos-arm64-Rekna.dmg",
     family: "macos",
@@ -38,14 +45,25 @@ export const desktopDownloadVariants: DesktopDownloadVariant[] = [
     label: "Linux (x64)",
     note: "For modern 64-bit Linux desktops.",
   },
+  {
+    assetFileName: "stable-win-x64-Rekna-Setup.zip",
+    family: "windows",
+    id: "windows-x64",
+    label: "Windows (x64)",
+    note: "For current 64-bit Windows PCs.",
+  },
 ];
+
+export const desktopDownloadVariants = desktopReleaseVariants.filter(
+  (variant): variant is DesktopDownloadVariant => variant.id !== "windows-x64"
+);
 
 export function buildLatestReleaseAssetUrl(assetFileName: string) {
   return `${REKNA_GITHUB_LATEST_DOWNLOAD_BASE_URL}/${assetFileName}`;
 }
 
 export function buildDesktopDownloadAssetFileName(
-  variantId: DesktopDownloadVariantId,
+  variantId: DesktopReleaseVariantId,
   version: string
 ) {
   if (!isDesktopReleaseVersion(version)) {
@@ -56,17 +74,18 @@ export function buildDesktopDownloadAssetFileName(
     return `Rekna-${version}-macOS-arm64.dmg`;
   }
 
-  return `Rekna-${version}-linux-x64.tar.gz`;
+  if (variantId === "linux-x64") {
+    return `Rekna-${version}-linux-x64.tar.gz`;
+  }
+
+  return `Rekna-${version}-windows-x64.zip`;
 }
 
 export function findDesktopDownloadAsset(
-  variantId: DesktopDownloadVariantId,
+  variantId: DesktopReleaseVariantId,
   assets: DesktopReleaseAsset[]
 ) {
-  const versionedAssetPattern =
-    variantId === "macos-arm64"
-      ? /^Rekna-\d+\.\d+\.\d+-macOS-arm64\.dmg$/
-      : /^Rekna-\d+\.\d+\.\d+-linux-x64\.tar\.gz$/;
+  const versionedAssetPattern = getVersionedDesktopReleaseAssetPattern(variantId);
 
   const versionedAsset = assets.find((asset) =>
     versionedAssetPattern.test(asset.name)
@@ -76,7 +95,7 @@ export function findDesktopDownloadAsset(
     return versionedAsset;
   }
 
-  const legacyAssetFileName = desktopDownloadVariants.find(
+  const legacyAssetFileName = desktopReleaseVariants.find(
     (variant) => variant.id === variantId
   )?.assetFileName;
 
@@ -100,7 +119,24 @@ export function resolveDesktopDownloadUrl(
       ? findDesktopDownloadAsset(variantId, assets)
       : undefined;
 
-  return releaseAsset?.browser_download_url ?? buildLatestReleaseAssetUrl(variant.assetFileName);
+  return (
+    releaseAsset?.browser_download_url ??
+    buildLatestReleaseAssetUrl(variant.assetFileName)
+  );
+}
+
+function getVersionedDesktopReleaseAssetPattern(
+  variantId: DesktopReleaseVariantId
+) {
+  if (variantId === "macos-arm64") {
+    return /^Rekna-\d+\.\d+\.\d+-macOS-arm64\.dmg$/;
+  }
+
+  if (variantId === "linux-x64") {
+    return /^Rekna-\d+\.\d+\.\d+-linux-x64\.tar\.gz$/;
+  }
+
+  return /^Rekna-\d+\.\d+\.\d+-windows-x64\.zip$/;
 }
 
 export function isDesktopReleaseVersion(value: string) {

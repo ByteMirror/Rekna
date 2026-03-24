@@ -36,7 +36,7 @@ jobs:
         run: bun run typecheck
 
       - name: Verify release download metadata
-        run: bun test packages/shared/src/desktop-release.test.ts packages/app-shell/src/components/Website.test.tsx
+        run: bun test packages/shared/src/desktop-release.test.ts packages/app-shell/src/components/Website.test.tsx scripts/release/release-desktop-workflow.test.ts
 
       - name: Compute next release version
         id: version
@@ -60,6 +60,10 @@ jobs:
             artifact_name: desktop-release-linux-x64
             label: Linux x64
             os: ubuntu-latest
+          - artifact_glob: apps/desktop/release-artifacts/*
+            artifact_name: desktop-release-windows-x64
+            label: Windows x64
+            os: windows-latest
     name: Build ${{ matrix.label }}
     steps:
       - name: Check out repository
@@ -81,7 +85,7 @@ jobs:
           REKNA_RELEASE_BASE_URL: https://github.com/${{ github.repository }}/releases/latest/download
           REKNA_RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
         working-directory: apps/desktop
-        run: ./node_modules/.bin/electrobun build --env=stable
+        run: bunx electrobun build --env=stable
 
       - name: Stage release artifacts
         env:

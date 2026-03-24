@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   buildDesktopDownloadAssetFileName,
-  desktopDownloadVariants,
+  desktopReleaseVariants,
 } from "../../packages/shared/src/desktop-release";
 import { resolveDesktopReleaseVersion } from "./desktop-version";
 
@@ -53,7 +53,7 @@ for (const artifact of readdirSync(artifactsDirectory, { withFileTypes: true }))
   );
 }
 
-for (const variant of desktopDownloadVariants) {
+for (const variant of desktopReleaseVariants) {
   const sourcePath = resolve(artifactsDirectory, variant.assetFileName);
 
   if (!existsSync(sourcePath)) {
