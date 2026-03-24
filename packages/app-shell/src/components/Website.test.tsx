@@ -133,7 +133,7 @@ describe("Website", () => {
     try {
       const { Website } = await import("./Website");
       const { container, getAllByText, getByRole, getByTestId, getByText } =
-        render(<Website featureCycleMs={100} />, {
+        render(<Website featureCycleMs={1000} />, {
           container: window.document.body,
         });
       const websiteShell = container.firstElementChild as HTMLDivElement;
@@ -289,7 +289,7 @@ describe("Website", () => {
       expect(tabs[0]?.getAttribute("aria-pressed")).toBe("true");
       expect(unitsProgress.getAttribute("data-active")).toBe("true");
       expect(unitsProgress.style.animationName).toBe("websiteFeatureProgress");
-      expect(unitsProgress.style.animationDuration).toBe("100ms");
+      expect(unitsProgress.style.animationDuration).toBe("1000ms");
       expect(memoryProgress.getAttribute("data-active")).toBe("false");
       expect(searchProgress.getAttribute("data-active")).toBe("false");
       expect(getByTestId("feature-media-title").textContent).toBe(
@@ -297,7 +297,7 @@ describe("Website", () => {
       );
 
       await act(async () => {
-        await new Promise((resolve) => window.setTimeout(resolve, 120));
+        await new Promise((resolve) => window.setTimeout(resolve, 1100));
       });
 
       await waitFor(() => {
@@ -306,7 +306,7 @@ describe("Website", () => {
         );
       });
       expect(memoryProgress.getAttribute("data-active")).toBe("true");
-      expect(memoryProgress.style.animationDuration).toBe("100ms");
+      expect(memoryProgress.style.animationDuration).toBe("1000ms");
       expect(unitsProgress.getAttribute("data-active")).toBe("false");
 
       const searchTab = tabs[2];
