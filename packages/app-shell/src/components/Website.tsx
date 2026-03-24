@@ -76,25 +76,25 @@ const GITHUB_REPO_URL = REKNA_GITHUB_REPOSITORY_URL;
 
 const homepageFeatures: FeatureDefinition[] = [
   {
-    body: "Switch currencies and units inline while the result stays locked to the side.",
-    eyebrow: "Conversions",
-    id: "units-and-fx",
-    objectPosition: "52% 12%",
-    title: "Units and FX",
-  },
-  {
-    body: "Reuse totals and intermediate results naturally without turning the sheet into a spreadsheet.",
-    eyebrow: "Reuse values",
-    id: "sheet-memory",
+    body: "Write calculations in plain text and watch each line resolve instantly beside the editor.",
+    eyebrow: "Plain text",
+    id: "plain-text-calculations",
     objectPosition: "50% 48%",
-    title: "Sheet memory",
+    title: "Plain Text Calculations",
   },
   {
-    body: "Move through sheets fast enough that the calculation never loses momentum.",
-    eyebrow: "Find fast",
-    id: "quiet-search",
+    body: "Convert units and currencies inline, from metres and inches to teaspoons and exchange rates.",
+    eyebrow: "Convert inline",
+    id: "units-and-currency",
+    objectPosition: "52% 12%",
+    title: "Units & Currency",
+  },
+  {
+    body: "Export values from one sheet and import them into another so reusable totals stay connected.",
+    eyebrow: "Import & export",
+    id: "connected-sheets",
     objectPosition: "50% 82%",
-    title: "Quiet search",
+    title: "Connected Sheets",
   },
 ] as const;
 
@@ -431,9 +431,9 @@ function Homepage({
                 style={{
                   objectPosition: activeFeature.objectPosition,
                   transform:
-                    activeFeature.id === "sheet-memory"
+                    activeFeature.id === "plain-text-calculations"
                       ? "scale(1.06)"
-                      : activeFeature.id === "quiet-search"
+                      : activeFeature.id === "connected-sheets"
                         ? "scale(1.04)"
                         : "scale(1)",
                 }}

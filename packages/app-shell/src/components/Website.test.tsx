@@ -141,13 +141,19 @@ describe("Website", () => {
       const featureTabsShell = getByTestId("feature-tabs-shell");
       const headerIcon = getByRole("img", { name: "Rekna desktop app icon" });
       const tabs = [
-        getByRole("tab", { name: "Units and FX" }),
-        getByRole("tab", { name: "Sheet memory" }),
-        getByRole("tab", { name: "Quiet search" }),
+        getByRole("tab", { name: "Plain Text Calculations" }),
+        getByRole("tab", { name: "Units & Currency" }),
+        getByRole("tab", { name: "Connected Sheets" }),
       ];
-      const unitsProgress = getByTestId("feature-tab-progress-units-and-fx");
-      const memoryProgress = getByTestId("feature-tab-progress-sheet-memory");
-      const searchProgress = getByTestId("feature-tab-progress-quiet-search");
+      const plainTextProgress = getByTestId(
+        "feature-tab-progress-plain-text-calculations"
+      );
+      const unitsProgress = getByTestId(
+        "feature-tab-progress-units-and-currency"
+      );
+      const connectedSheetsProgress = getByTestId(
+        "feature-tab-progress-connected-sheets"
+      );
 
       expect(document.body.dataset.rootView).toBe("website");
       expect(websiteShell.style.getPropertyValue("--website-accent")).toBe(
@@ -276,24 +282,26 @@ describe("Website", () => {
       );
       expect(tabs[0]?.className.includes("p-4")).toBe(true);
       expect(
-        getByTestId("feature-tab-title-units-and-fx").className.includes(
-          "text-[1.35rem]"
-        )
+        getByTestId(
+          "feature-tab-title-plain-text-calculations"
+        ).className.includes("text-[1.35rem]")
       ).toBe(true);
-      expect(unitsProgress.parentElement?.className.includes("bottom-3")).toBe(
-        true
-      );
-      expect(tabs[0]?.textContent?.trim()).toBe("Units and FX");
-      expect(tabs[1]?.textContent?.trim()).toBe("Sheet memory");
-      expect(tabs[2]?.textContent?.trim()).toBe("Quiet search");
+      expect(
+        plainTextProgress.parentElement?.className.includes("bottom-3")
+      ).toBe(true);
+      expect(tabs[0]?.textContent?.trim()).toBe("Plain Text Calculations");
+      expect(tabs[1]?.textContent?.trim()).toBe("Units & Currency");
+      expect(tabs[2]?.textContent?.trim()).toBe("Connected Sheets");
       expect(tabs[0]?.getAttribute("aria-pressed")).toBe("true");
-      expect(unitsProgress.getAttribute("data-active")).toBe("true");
-      expect(unitsProgress.style.animationName).toBe("websiteFeatureProgress");
-      expect(unitsProgress.style.animationDuration).toBe("1000ms");
-      expect(memoryProgress.getAttribute("data-active")).toBe("false");
-      expect(searchProgress.getAttribute("data-active")).toBe("false");
+      expect(plainTextProgress.getAttribute("data-active")).toBe("true");
+      expect(plainTextProgress.style.animationName).toBe(
+        "websiteFeatureProgress"
+      );
+      expect(plainTextProgress.style.animationDuration).toBe("1000ms");
+      expect(unitsProgress.getAttribute("data-active")).toBe("false");
+      expect(connectedSheetsProgress.getAttribute("data-active")).toBe("false");
       expect(getByTestId("feature-media-title").textContent).toBe(
-        "Units and FX"
+        "Plain Text Calculations"
       );
 
       await act(async () => {
@@ -302,31 +310,31 @@ describe("Website", () => {
 
       await waitFor(() => {
         expect(getByTestId("feature-media-title").textContent).toBe(
-          "Sheet memory"
+          "Units & Currency"
         );
       });
-      expect(memoryProgress.getAttribute("data-active")).toBe("true");
-      expect(memoryProgress.style.animationDuration).toBe("1000ms");
-      expect(unitsProgress.getAttribute("data-active")).toBe("false");
+      expect(unitsProgress.getAttribute("data-active")).toBe("true");
+      expect(unitsProgress.style.animationDuration).toBe("1000ms");
+      expect(plainTextProgress.getAttribute("data-active")).toBe("false");
 
-      const searchTab = tabs[2];
-      if (!searchTab) {
-        throw new Error("Quiet search tab was not rendered");
+      const connectedSheetsTab = tabs[2];
+      if (!connectedSheetsTab) {
+        throw new Error("Connected Sheets tab was not rendered");
       }
 
       await act(async () => {
-        fireEvent.click(searchTab);
+        fireEvent.click(connectedSheetsTab);
       });
 
-      expect(searchTab.getAttribute("aria-pressed")).toBe("true");
-      expect(searchProgress.getAttribute("data-active")).toBe("true");
+      expect(connectedSheetsTab.getAttribute("aria-pressed")).toBe("true");
+      expect(connectedSheetsProgress.getAttribute("data-active")).toBe("true");
       expect(getByTestId("feature-media-title").textContent).toBe(
-        "Quiet search"
+        "Connected Sheets"
       );
       expect(getByTestId("feature-media").getAttribute("data-feature")).toBe(
-        "quiet-search"
+        "connected-sheets"
       );
-      expect(getByRole("img", { name: "Quiet search preview" })).toBeTruthy();
+      expect(getByRole("img", { name: "Connected Sheets preview" })).toBeTruthy();
       expect(getByRole("link", { name: "Download" }).textContent).toBe(
         "Download"
       );
