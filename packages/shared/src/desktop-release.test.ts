@@ -4,10 +4,12 @@ import {
   buildDesktopDownloadAssetFileName,
   buildDesktopReleaseTag,
   buildLatestReleaseAssetUrl,
+  desktopDownloadVariants,
   findDesktopDownloadAsset,
   incrementDesktopReleaseVersion,
   parseDesktopReleaseTag,
   REKNA_GITHUB_LATEST_DOWNLOAD_BASE_URL,
+  resolveDesktopDownloadUrl,
 } from "./desktop-release";
 
 describe("desktop release helpers", () => {
@@ -21,6 +23,36 @@ describe("desktop release helpers", () => {
       buildLatestReleaseAssetUrl("stable-linux-x64-Rekna-Setup.tar.gz")
     ).toBe(
       `${REKNA_GITHUB_LATEST_DOWNLOAD_BASE_URL}/stable-linux-x64-Rekna-Setup.tar.gz`
+    );
+    expect(
+      buildLatestReleaseAssetUrl("stable-win-x64-Rekna-Setup.zip")
+    ).toBe(
+      `${REKNA_GITHUB_LATEST_DOWNLOAD_BASE_URL}/stable-win-x64-Rekna-Setup.zip`
+    );
+  });
+
+  test("includes Windows in website download variants and resolves its release asset", () => {
+    expect(desktopDownloadVariants.map((variant) => variant.id)).toEqual([
+      "macos-arm64",
+      "linux-x64",
+      "windows-x64",
+    ]);
+
+    expect(
+      resolveDesktopDownloadUrl("windows-x64", [
+        {
+          browser_download_url:
+            "https://github.com/ByteMirror/Rekna/releases/download/v0.1.7/stable-win-x64-Rekna-Setup.zip",
+          name: "stable-win-x64-Rekna-Setup.zip",
+        },
+        {
+          browser_download_url:
+            "https://github.com/ByteMirror/Rekna/releases/download/v0.1.7/Rekna-0.1.7-windows-x64.zip",
+          name: "Rekna-0.1.7-windows-x64.zip",
+        },
+      ])
+    ).toBe(
+      "https://github.com/ByteMirror/Rekna/releases/download/v0.1.7/Rekna-0.1.7-windows-x64.zip"
     );
   });
 

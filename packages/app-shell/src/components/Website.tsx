@@ -373,10 +373,46 @@ function Homepage({
   onFeatureSelect: (nextIndex: number) => void;
 }) {
   const featureVideoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
+  const [featureProgressRatios, setFeatureProgressRatios] = useState<
+    Record<string, number>
+  >({});
+
+  const updateFeatureProgressRatio = (featureId: string, progress: number) => {
+    const nextProgress = clampUnitInterval(progress);
+
+    setFeatureProgressRatios((currentProgressRatios) => {
+      if (currentProgressRatios[featureId] === nextProgress) {
+        return currentProgressRatios;
+      }
+
+      return {
+        ...currentProgressRatios,
+        [featureId]: nextProgress,
+      };
+    });
+  };
+
+  const syncFeatureProgressRatio = (
+    featureId: string,
+    video: HTMLVideoElement
+  ) => {
+    const durationSeconds = video.duration;
+
+    if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+      updateFeatureProgressRatio(featureId, 0);
+      return;
+    }
+
+    updateFeatureProgressRatio(featureId, video.currentTime / durationSeconds);
+  };
 
   useEffect(() => {
     homepageFeatures.forEach((feature) => {
       const video = featureVideoRefs.current[feature.id];
+
+      if (!usesTimedFeatureCycle) {
+        updateFeatureProgressRatio(feature.id, 0);
+      }
 
       if (!video) {
         return;
@@ -394,6 +430,10 @@ function Homepage({
         if (playAttempt && typeof playAttempt.catch === "function") {
           void playAttempt.catch(() => undefined);
         }
+
+        if (!usesTimedFeatureCycle) {
+          syncFeatureProgressRatio(feature.id, video);
+        }
         return;
       }
 
@@ -405,7 +445,7 @@ function Homepage({
         // Ignore seek errors until metadata is ready.
       }
     });
-  }, [activeFeature.id]);
+  }, [activeFeature.id, usesTimedFeatureCycle]);
 
   return (
     <div className="flex flex-1 flex-col gap-14 py-10 lg:gap-20 lg:py-14">
@@ -440,6 +480,9 @@ function Homepage({
                 const featureCycleDurationMs = getFeatureCycleDuration(
                   feature.id
                 );
+                const featureProgressRatio = isActive
+                  ? featureProgressRatios[feature.id] ?? 0
+                  : 0;
 
                 return (
                   <button
@@ -481,13 +524,20 @@ function Homepage({
                           data-active={isActive ? "true" : "false"}
                           data-testid={`feature-tab-progress-${feature.id}`}
                           style={{
-                            animationDuration: `${featureCycleDurationMs}ms`,
-                            animationFillMode: "forwards",
-                            animationName:
-                              isActive && featureCycleDurationMs > 0
-                              ? "websiteFeatureProgress"
-                              : "none",
-                            animationTimingFunction: "linear",
+                            ...(usesTimedFeatureCycle
+                              ? {
+                                  animationDuration: `${featureCycleDurationMs}ms`,
+                                  animationFillMode: "forwards",
+                                  animationName:
+                                    isActive && featureCycleDurationMs > 0
+                                      ? "websiteFeatureProgress"
+                                      : "none",
+                                  animationTimingFunction: "linear",
+                                }
+                              : {
+                                  transform: `scaleX(${featureProgressRatio})`,
+                                  transition: "transform 120ms linear",
+                                }),
                           }}
                         />
                       </span>
@@ -539,6 +589,10 @@ function Homepage({
                       disablePictureInPicture
                       muted
                       onEnded={() => {
+                        if (!usesTimedFeatureCycle) {
+                          updateFeatureProgressRatio(feature.id, 1);
+                        }
+
                         if (!usesTimedFeatureCycle && isActive) {
                           onFeatureAdvance();
                         }
@@ -553,6 +607,21 @@ function Homepage({
                           onFeatureDurationChange(
                             feature.id,
                             Math.round(durationSeconds * 1000)
+                          );
+                        }
+
+                        if (!usesTimedFeatureCycle) {
+                          syncFeatureProgressRatio(
+                            feature.id,
+                            event.currentTarget
+                          );
+                        }
+                      }}
+                      onTimeUpdate={(event) => {
+                        if (!usesTimedFeatureCycle && isActive) {
+                          syncFeatureProgressRatio(
+                            feature.id,
+                            event.currentTarget
                           );
                         }
                       }}
@@ -575,6 +644,18 @@ function Homepage({
       <HomepageDownloadSection downloadVariants={downloadVariants} />
     </div>
   );
+}
+
+function clampUnitInterval(value: number) {
+  if (value <= 0) {
+    return 0;
+  }
+
+  if (value >= 1) {
+    return 1;
+  }
+
+  return value;
 }
 
 function HomepageTestimonials() {
@@ -959,6 +1040,10 @@ function detectDownloadFamily(): DownloadFamily {
     return "macos";
   }
 
+  if (platformText.includes("win")) {
+    return "windows";
+  }
+
   if (platformText.includes("linux") || platformText.includes("x11")) {
     return "linux";
   }
@@ -1000,6 +1085,10 @@ function getDefaultDownloadVariant(
   family: DownloadFamily,
   downloadVariants: DownloadVariant[]
 ) {
+  if (family === "windows") {
+    return downloadVariants.find((variant) => variant.id === "windows-x64")!;
+  }
+
   if (family === "linux") {
     return downloadVariants.find((variant) => variant.id === "linux-x64")!;
   }
@@ -1010,6 +1099,10 @@ function getDefaultDownloadVariant(
 function getDownloadFamilyLabel(family: DownloadFamily) {
   if (family === "macos") {
     return "macOS";
+  }
+
+  if (family === "windows") {
+    return "Windows";
   }
 
   if (family === "linux") {

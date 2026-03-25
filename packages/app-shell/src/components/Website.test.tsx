@@ -57,6 +57,11 @@ const legacyReleaseAssets = [
       "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-linux-x64-Rekna-Setup.tar.gz",
     name: "stable-linux-x64-Rekna-Setup.tar.gz",
   },
+  {
+    browser_download_url:
+      "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-win-x64-Rekna-Setup.zip",
+    name: "stable-win-x64-Rekna-Setup.zip",
+  },
 ];
 
 afterEach(() => {
@@ -157,10 +162,74 @@ describe("Website", () => {
         window.document.querySelector('[data-testid="download-option-macos-x64"]')
       ).toBeNull();
       expect(
-        window.document.querySelector(
-          '[data-testid="download-option-windows-x64"]'
-        )
-      ).toBeNull();
+        (await findByTestId("download-option-windows-x64")).getAttribute("href")
+      ).toBe(
+        "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-win-x64-Rekna-Setup.zip"
+      );
+    } finally {
+      restoreNavigatorSnapshot();
+      cleanup();
+      delete document.body.dataset.rootView;
+      window.document.body.innerHTML = "";
+      window.history.replaceState({}, "", "/");
+    }
+  });
+
+  test("prefers the Windows build when Windows is detected", async () => {
+    window.history.replaceState({}, "", "/");
+    mockLatestReleaseAssets([
+      {
+        browser_download_url:
+          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.7/Rekna-0.1.7-macOS-arm64.dmg",
+        name: "Rekna-0.1.7-macOS-arm64.dmg",
+      },
+      {
+        browser_download_url:
+          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.7/Rekna-0.1.7-linux-x64.tar.gz",
+        name: "Rekna-0.1.7-linux-x64.tar.gz",
+      },
+      {
+        browser_download_url:
+          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.7/Rekna-0.1.7-windows-x64.zip",
+        name: "Rekna-0.1.7-windows-x64.zip",
+      },
+    ]);
+    setNavigatorSnapshot({
+      platform: "Win32",
+      userAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
+    });
+
+    try {
+      const { Website } = await import("./Website");
+      const { findByTestId, getByRole, getByTestId } = render(<Website />, {
+        container: window.document.body,
+      });
+
+      await waitFor(() => {
+        expect(getByTestId("download-cta").getAttribute("href")).toBe(
+          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.7/Rekna-0.1.7-windows-x64.zip"
+        );
+      });
+      expect(getByTestId("download-cta").textContent).toContain(
+        "Download for Windows (x64)"
+      );
+      expect(getByTestId("detected-download-platform").textContent).toContain(
+        "Windows detected"
+      );
+
+      await act(async () => {
+        fireEvent.pointerDown(
+          getByRole("button", { name: "Choose a different download" })
+        );
+        fireEvent.click(
+          getByRole("button", { name: "Choose a different download" })
+        );
+      });
+
+      expect(await findByTestId("download-option-macos-arm64")).toBeTruthy();
+      expect(await findByTestId("download-option-linux-x64")).toBeTruthy();
+      expect(await findByTestId("download-option-windows-x64")).toBeTruthy();
     } finally {
       restoreNavigatorSnapshot();
       cleanup();
@@ -187,6 +256,11 @@ describe("Website", () => {
         browser_download_url:
           "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-linux-x64.tar.gz",
         name: "Rekna-0.1.3-linux-x64.tar.gz",
+      },
+      {
+        browser_download_url:
+          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-windows-x64.zip",
+        name: "Rekna-0.1.3-windows-x64.zip",
       },
     ]);
     setNavigatorSnapshot({
@@ -220,6 +294,11 @@ describe("Website", () => {
         (await findByTestId("download-option-linux-x64")).getAttribute("href")
       ).toBe(
         "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-linux-x64.tar.gz"
+      );
+      expect(
+        (await findByTestId("download-option-windows-x64")).getAttribute("href")
+      ).toBe(
+        "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-windows-x64.zip"
       );
     } finally {
       restoreNavigatorSnapshot();
@@ -592,39 +671,93 @@ describe("Website", () => {
     }
   });
 
-  test("waits for loaded video metadata before setting the default carousel timing", async () => {
+  test("tracks each active carousel progress indicator from its video's playback position", async () => {
     window.history.replaceState({}, "", "/");
     mockLatestReleaseAssets(legacyReleaseAssets);
 
     try {
       const { Website } = await import("./Website");
-      const { getByTestId } = render(<Website />, {
+      const { getByRole, getByTestId } = render(<Website />, {
         container: window.document.body,
       });
       const plainTextVideo = getByTestId(
         "feature-video-plain-text-calculations"
       ) as HTMLVideoElement;
+      const unitsVideo = getByTestId(
+        "feature-video-units-and-currency"
+      ) as HTMLVideoElement;
       const plainTextProgress = getByTestId(
         "feature-tab-progress-plain-text-calculations"
       );
+      const unitsProgress = getByTestId(
+        "feature-tab-progress-units-and-currency"
+      );
 
-      expect(
-        plainTextProgress.style.animationName
-      ).toBe("none");
+      let plainTextCurrentTime = 0;
+      let unitsCurrentTime = 0;
+
+      Object.defineProperty(plainTextVideo, "currentTime", {
+        configurable: true,
+        get() {
+          return plainTextCurrentTime;
+        },
+        set(value: number) {
+          plainTextCurrentTime = value;
+        },
+      });
+
+      Object.defineProperty(unitsVideo, "currentTime", {
+        configurable: true,
+        get() {
+          return unitsCurrentTime;
+        },
+        set(value: number) {
+          unitsCurrentTime = value;
+        },
+      });
+
+      expect(plainTextProgress.style.transform).toBe("scaleX(0)");
+      expect(unitsProgress.style.transform).toBe("scaleX(0)");
 
       Object.defineProperty(plainTextVideo, "duration", {
         configurable: true,
-        value: 12.5,
+        value: 40,
+      });
+      Object.defineProperty(unitsVideo, "duration", {
+        configurable: true,
+        value: 64.4,
       });
 
       await act(async () => {
         fireEvent.loadedMetadata(plainTextVideo);
       });
 
-      expect(plainTextProgress.style.animationDuration).toBe("12500ms");
+      plainTextCurrentTime = 10;
+
+      await act(async () => {
+        fireEvent.timeUpdate(plainTextVideo);
+      });
+
+      expect(plainTextProgress.style.transform).toBe("scaleX(0.25)");
+
+      await act(async () => {
+        fireEvent.click(getByRole("tab", { name: "Units & Currency" }));
+      });
+
+      unitsCurrentTime = 16.1;
+
+      await act(async () => {
+        fireEvent.loadedMetadata(unitsVideo);
+        fireEvent.timeUpdate(unitsVideo);
+      });
+
+      expect(unitsProgress.style.transform).toBe("scaleX(0.25)");
       expect(
-        plainTextVideo.getAttribute("src")
-      ).toBe("/videos/rekna-plain-text-calculations.mp4");
+        getByTestId("feature-media").getAttribute("data-feature")
+      ).toBe("units-and-currency");
+      expect(unitsVideo.getAttribute("src")).toBe(
+        "/videos/rekna-units-and-currency.mp4"
+      );
     } finally {
       cleanup();
       delete document.body.dataset.rootView;
@@ -732,11 +865,11 @@ describe("Website", () => {
       expect(getByTestId("download-cta").textContent).toContain("Download for");
       await waitFor(() => {
         expect(getByTestId("download-cta").getAttribute("href")).toBe(
-          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-macos-arm64-Rekna.dmg"
+          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-win-x64-Rekna-Setup.zip"
         );
       });
       expect(getByTestId("detected-download-platform").textContent).toContain(
-        "Default build selected"
+        "Windows detected"
       );
     } finally {
       restoreNavigatorSnapshot();
