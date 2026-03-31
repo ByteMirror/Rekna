@@ -1,11 +1,9 @@
-import { ArrowUpRight, ChevronDown } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   desktopDownloadVariants as sharedDesktopDownloadVariants,
   REKNA_GITHUB_LATEST_RELEASE_API_URL,
   REKNA_GITHUB_REPOSITORY_URL,
-  type DesktopDownloadFamily,
-  type DesktopDownloadVariantId,
   type DesktopReleaseAsset,
   resolveDesktopDownloadUrl,
 } from "@linea/shared";
@@ -14,12 +12,6 @@ import { useEffect, useRef, useState } from "react";
 
 import reknaDesktopIcon from "../../../../apps/desktop/icon.iconset/icon_512x512.png";
 import { Button } from "./ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
 
 type FeatureDefinition = {
   id: string;
@@ -27,12 +19,8 @@ type FeatureDefinition = {
   videoSrc: string;
 };
 
-type DownloadFamily = DesktopDownloadFamily;
-
 type DownloadVariant = {
-  family: Exclude<DownloadFamily, "unknown">;
   href: string;
-  id: DesktopDownloadVariantId;
   label: string;
   note: string;
 };
@@ -865,9 +853,7 @@ function HomepageDownloadSection({
 }: {
   downloadVariants: DownloadVariant[];
 }) {
-  const detectedFamily = detectDownloadFamily();
-  const defaultVariant = getDefaultDownloadVariant(detectedFamily, downloadVariants);
-  const detectedPlatformLabel = getDownloadFamilyLabel(detectedFamily);
+  const macVariant = downloadVariants[0]!;
 
   return (
     <section
@@ -897,9 +883,7 @@ function HomepageDownloadSection({
               className="text-[0.7rem] uppercase tracking-[0.2em] text-[var(--website-muted)]"
               data-testid="detected-download-platform"
             >
-              {detectedFamily === "unknown"
-                ? "Default build selected"
-                : `${detectedPlatformLabel} detected`}
+              macOS (Apple Silicon)
             </p>
             <div className="inline-flex max-w-full overflow-hidden rounded-full border border-[color-mix(in_oklab,var(--website-line)_72%,var(--website-accent)_28%)] bg-[var(--website-surface)] shadow-[0_18px_48px_-34px_rgba(0,0,0,0.55)]">
               <Button
@@ -907,53 +891,11 @@ function HomepageDownloadSection({
                 className="h-10 rounded-none border-0 bg-[var(--website-accent)] px-5 text-[0.76rem] uppercase tracking-[0.14em] text-[var(--website-bg)] hover:bg-[color-mix(in_oklab,var(--website-accent)_86%,black_14%)]"
                 size="lg"
               >
-                <a data-testid="download-cta" href={defaultVariant.href}>
-                  {`Download for ${defaultVariant.label}`}
+                <a data-testid="download-cta" href={macVariant.href}>
+                  {`Download for ${macVariant.label}`}
                   <ArrowUpRight className="size-4" />
                 </a>
               </Button>
-              <DropdownMenu>
-                <Button
-                  asChild
-                  className="h-10 rounded-none border-0 border-l border-[color-mix(in_oklab,var(--website-accent)_34%,var(--website-line))] bg-[var(--website-accent)] px-3 text-[var(--website-bg)] hover:bg-[color-mix(in_oklab,var(--website-accent)_86%,black_14%)]"
-                  size="lg"
-                >
-                  <DropdownMenuTrigger
-                    aria-label="Choose a different download"
-                    type="button"
-                  >
-                    <ChevronDown className="size-4" />
-                  </DropdownMenuTrigger>
-                </Button>
-                <DropdownMenuContent
-                  align="start"
-                  className="w-[17.5rem] rounded-[1.15rem] border-[color-mix(in_oklab,var(--website-line)_76%,var(--website-accent)_24%)] bg-[var(--website-surface)] p-1.5"
-                >
-                  {downloadVariants.map((variant) => (
-                    <DropdownMenuItem
-                      asChild
-                      className="rounded-[0.95rem] px-3 py-3"
-                      key={variant.id}
-                    >
-                      <a
-                        aria-label={variant.label}
-                        data-testid={`download-option-${variant.id}`}
-                        href={variant.href}
-                        rel="noreferrer"
-                      >
-                        <span className="flex min-w-0 flex-1 flex-col gap-1">
-                          <span className="text-sm text-[var(--website-ink)]">
-                            {variant.label}
-                          </span>
-                          <span className="text-[0.73rem] leading-5 text-[var(--website-muted)]">
-                            {variant.note}
-                          </span>
-                        </span>
-                      </a>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -1018,44 +960,9 @@ function scrollToDownloadSection(behavior: ScrollBehavior) {
     ?.scrollIntoView({ behavior, block: "start" });
 }
 
-function detectDownloadFamily(): DownloadFamily {
-  const browserNavigator = window.navigator as Navigator & {
-    userAgentData?: { platform?: string };
-  };
-  const platformText = [
-    browserNavigator.userAgentData?.platform,
-    browserNavigator.platform,
-    browserNavigator.userAgent,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  if (
-    platformText.includes("mac") ||
-    platformText.includes("darwin") ||
-    platformText.includes("iphone") ||
-    platformText.includes("ipad")
-  ) {
-    return "macos";
-  }
-
-  if (platformText.includes("win")) {
-    return "windows";
-  }
-
-  if (platformText.includes("linux") || platformText.includes("x11")) {
-    return "linux";
-  }
-
-  return "unknown";
-}
-
 function buildDownloadVariants(assets?: DesktopReleaseAsset[]) {
   return sharedDesktopDownloadVariants.map((variant) => ({
-    family: variant.family,
     href: resolveDesktopDownloadUrl(variant.id, assets),
-    id: variant.id,
     label: variant.label,
     note: variant.note,
   }));
@@ -1081,33 +988,3 @@ async function loadDownloadVariants() {
   );
 }
 
-function getDefaultDownloadVariant(
-  family: DownloadFamily,
-  downloadVariants: DownloadVariant[]
-) {
-  if (family === "windows") {
-    return downloadVariants.find((variant) => variant.id === "windows-x64")!;
-  }
-
-  if (family === "linux") {
-    return downloadVariants.find((variant) => variant.id === "linux-x64")!;
-  }
-
-  return downloadVariants.find((variant) => variant.id === "macos-arm64")!;
-}
-
-function getDownloadFamilyLabel(family: DownloadFamily) {
-  if (family === "macos") {
-    return "macOS";
-  }
-
-  if (family === "windows") {
-    return "Windows";
-  }
-
-  if (family === "linux") {
-    return "Linux";
-  }
-
-  return "Recommended";
-}

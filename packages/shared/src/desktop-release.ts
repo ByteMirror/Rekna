@@ -7,11 +7,8 @@ export const REKNA_GITHUB_RELEASES_URL = `https://github.com/${REKNA_GITHUB_REPO
 export const REKNA_GITHUB_LATEST_DOWNLOAD_BASE_URL = `${REKNA_GITHUB_RELEASES_URL}/latest/download`;
 export const REKNA_GITHUB_LATEST_RELEASE_API_URL = `https://api.github.com/repos/${REKNA_GITHUB_REPOSITORY}/releases/latest`;
 
-export type DesktopDownloadFamily = "linux" | "macos" | "windows" | "unknown";
-export type DesktopDownloadVariantId =
-  | "linux-x64"
-  | "macos-arm64"
-  | "windows-x64";
+export type DesktopDownloadFamily = "macos" | "unknown";
+export type DesktopDownloadVariantId = "macos-arm64";
 export type DesktopReleaseFamily = Exclude<DesktopDownloadFamily, "unknown">;
 export type DesktopReleaseVariantId = DesktopDownloadVariantId;
 
@@ -38,20 +35,6 @@ export const desktopReleaseVariants: DesktopReleaseVariant[] = [
     label: "macOS (Apple Silicon)",
     note: "Recommended for current Macs.",
   },
-  {
-    assetFileName: "stable-linux-x64-Rekna-Setup.tar.gz",
-    family: "linux",
-    id: "linux-x64",
-    label: "Linux (x64)",
-    note: "For modern 64-bit Linux desktops.",
-  },
-  {
-    assetFileName: "stable-win-x64-Rekna-Setup.zip",
-    family: "windows",
-    id: "windows-x64",
-    label: "Windows (x64)",
-    note: "For current 64-bit Windows PCs.",
-  },
 ];
 
 export const desktopDownloadVariants: DesktopDownloadVariant[] =
@@ -69,15 +52,7 @@ export function buildDesktopDownloadAssetFileName(
     throw new Error(`Invalid desktop release version: ${version}`);
   }
 
-  if (variantId === "macos-arm64") {
-    return `Rekna-${version}-macOS-arm64.dmg`;
-  }
-
-  if (variantId === "linux-x64") {
-    return `Rekna-${version}-linux-x64.tar.gz`;
-  }
-
-  return `Rekna-${version}-windows-x64.zip`;
+  return `Rekna-${version}-macOS-arm64.dmg`;
 }
 
 export function findDesktopDownloadAsset(
@@ -127,15 +102,7 @@ export function resolveDesktopDownloadUrl(
 function getVersionedDesktopReleaseAssetPattern(
   variantId: DesktopReleaseVariantId
 ) {
-  if (variantId === "macos-arm64") {
-    return /^Rekna-\d+\.\d+\.\d+-macOS-arm64\.dmg$/;
-  }
-
-  if (variantId === "linux-x64") {
-    return /^Rekna-\d+\.\d+\.\d+-linux-x64\.tar\.gz$/;
-  }
-
-  return /^Rekna-\d+\.\d+\.\d+-windows-x64\.zip$/;
+  return /^Rekna-\d+\.\d+\.\d+-macOS-arm64\.dmg$/;
 }
 
 export function isDesktopReleaseVersion(value: string) {

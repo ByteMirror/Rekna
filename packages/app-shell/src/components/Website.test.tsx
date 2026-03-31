@@ -52,16 +52,6 @@ const legacyReleaseAssets = [
       "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-macos-arm64-Rekna.dmg",
     name: "stable-macos-arm64-Rekna.dmg",
   },
-  {
-    browser_download_url:
-      "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-linux-x64-Rekna-Setup.tar.gz",
-    name: "stable-linux-x64-Rekna-Setup.tar.gz",
-  },
-  {
-    browser_download_url:
-      "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-win-x64-Rekna-Setup.zip",
-    name: "stable-win-x64-Rekna-Setup.zip",
-  },
 ];
 
 afterEach(() => {
@@ -99,18 +89,13 @@ beforeEach(() => {
 });
 
 describe("Website", () => {
-  test("prefers the detected platform for the primary download CTA and exposes all variants", async () => {
+  test("shows macOS download as the only option", async () => {
     window.history.replaceState({}, "", "/");
     mockLatestReleaseAssets(legacyReleaseAssets);
-    setNavigatorSnapshot({
-      platform: "MacIntel",
-      userAgent:
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
-    });
 
     try {
       const { Website } = await import("./Website");
-      const { getByRole, getByTestId, findByTestId } = render(<Website />, {
+      const { getByTestId } = render(<Website />, {
         container: window.document.body,
       });
 
@@ -140,98 +125,9 @@ describe("Website", () => {
         );
       });
       expect(getByTestId("detected-download-platform").textContent).toContain(
-        "macOS detected"
-      );
-
-      await act(async () => {
-        fireEvent.pointerDown(
-          getByRole("button", { name: "Choose a different download" })
-        );
-        fireEvent.click(
-          getByRole("button", { name: "Choose a different download" })
-        );
-      });
-
-      expect(
-        (await findByTestId("download-option-macos-arm64")).getAttribute("href")
-      ).toBe(
-        "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-macos-arm64-Rekna.dmg"
-      );
-      expect(await findByTestId("download-option-linux-x64")).toBeTruthy();
-      expect(
-        window.document.querySelector('[data-testid="download-option-macos-x64"]')
-      ).toBeNull();
-      expect(
-        (await findByTestId("download-option-windows-x64")).getAttribute("href")
-      ).toBe(
-        "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-win-x64-Rekna-Setup.zip"
+        "macOS (Apple Silicon)"
       );
     } finally {
-      restoreNavigatorSnapshot();
-      cleanup();
-      delete document.body.dataset.rootView;
-      window.document.body.innerHTML = "";
-      window.history.replaceState({}, "", "/");
-    }
-  });
-
-  test("prefers the Windows build when Windows is detected", async () => {
-    window.history.replaceState({}, "", "/");
-    mockLatestReleaseAssets([
-      {
-        browser_download_url:
-          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.7/Rekna-0.1.7-macOS-arm64.dmg",
-        name: "Rekna-0.1.7-macOS-arm64.dmg",
-      },
-      {
-        browser_download_url:
-          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.7/Rekna-0.1.7-linux-x64.tar.gz",
-        name: "Rekna-0.1.7-linux-x64.tar.gz",
-      },
-      {
-        browser_download_url:
-          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.7/Rekna-0.1.7-windows-x64.zip",
-        name: "Rekna-0.1.7-windows-x64.zip",
-      },
-    ]);
-    setNavigatorSnapshot({
-      platform: "Win32",
-      userAgent:
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
-    });
-
-    try {
-      const { Website } = await import("./Website");
-      const { findByTestId, getByRole, getByTestId } = render(<Website />, {
-        container: window.document.body,
-      });
-
-      await waitFor(() => {
-        expect(getByTestId("download-cta").getAttribute("href")).toBe(
-          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.7/Rekna-0.1.7-windows-x64.zip"
-        );
-      });
-      expect(getByTestId("download-cta").textContent).toContain(
-        "Download for Windows (x64)"
-      );
-      expect(getByTestId("detected-download-platform").textContent).toContain(
-        "Windows detected"
-      );
-
-      await act(async () => {
-        fireEvent.pointerDown(
-          getByRole("button", { name: "Choose a different download" })
-        );
-        fireEvent.click(
-          getByRole("button", { name: "Choose a different download" })
-        );
-      });
-
-      expect(await findByTestId("download-option-macos-arm64")).toBeTruthy();
-      expect(await findByTestId("download-option-linux-x64")).toBeTruthy();
-      expect(await findByTestId("download-option-windows-x64")).toBeTruthy();
-    } finally {
-      restoreNavigatorSnapshot();
       cleanup();
       delete document.body.dataset.rootView;
       window.document.body.innerHTML = "";
@@ -252,26 +148,11 @@ describe("Website", () => {
           "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-macOS-arm64.dmg",
         name: "Rekna-0.1.3-macOS-arm64.dmg",
       },
-      {
-        browser_download_url:
-          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-linux-x64.tar.gz",
-        name: "Rekna-0.1.3-linux-x64.tar.gz",
-      },
-      {
-        browser_download_url:
-          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-windows-x64.zip",
-        name: "Rekna-0.1.3-windows-x64.zip",
-      },
     ]);
-    setNavigatorSnapshot({
-      platform: "MacIntel",
-      userAgent:
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
-    });
 
     try {
       const { Website } = await import("./Website");
-      const { findByTestId, getByTestId, getByRole } = render(<Website />, {
+      const { getByTestId } = render(<Website />, {
         container: window.document.body,
       });
 
@@ -280,28 +161,7 @@ describe("Website", () => {
           "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-macOS-arm64.dmg"
         );
       });
-
-      await act(async () => {
-        fireEvent.pointerDown(
-          getByRole("button", { name: "Choose a different download" })
-        );
-        fireEvent.click(
-          getByRole("button", { name: "Choose a different download" })
-        );
-      });
-
-      expect(
-        (await findByTestId("download-option-linux-x64")).getAttribute("href")
-      ).toBe(
-        "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-linux-x64.tar.gz"
-      );
-      expect(
-        (await findByTestId("download-option-windows-x64")).getAttribute("href")
-      ).toBe(
-        "https://github.com/ByteMirror/Rekna/releases/download/v0.1.3/Rekna-0.1.3-windows-x64.zip"
-      );
     } finally {
-      restoreNavigatorSnapshot();
       cleanup();
       delete document.body.dataset.rootView;
       window.document.body.innerHTML = "";
@@ -803,11 +663,6 @@ describe("Website", () => {
   test("clicking the header download link scrolls to the homepage download section", async () => {
     window.history.replaceState({}, "", "/");
     mockLatestReleaseAssets(legacyReleaseAssets);
-    setNavigatorSnapshot({
-      platform: "Win32",
-      userAgent:
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
-    });
 
     let scrollTarget: Element | null = null;
     let scrollOptions: ScrollIntoViewOptions | undefined;
@@ -862,17 +717,18 @@ describe("Website", () => {
       });
       expect(window.location.pathname).toBe("/");
       expect(window.location.hash).toBe("#download");
-      expect(getByTestId("download-cta").textContent).toContain("Download for");
+      expect(getByTestId("download-cta").textContent).toContain(
+        "Download for macOS (Apple Silicon)"
+      );
       await waitFor(() => {
         expect(getByTestId("download-cta").getAttribute("href")).toBe(
-          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-win-x64-Rekna-Setup.zip"
+          "https://github.com/ByteMirror/Rekna/releases/download/v0.1.2/stable-macos-arm64-Rekna.dmg"
         );
       });
       expect(getByTestId("detected-download-platform").textContent).toContain(
-        "Windows detected"
+        "macOS (Apple Silicon)"
       );
     } finally {
-      restoreNavigatorSnapshot();
       cleanup();
       delete document.body.dataset.rootView;
       window.document.body.innerHTML = "";
@@ -881,28 +737,6 @@ describe("Website", () => {
   });
 });
 
-const originalNavigatorState = {
-  platform: window.navigator.platform,
-  userAgent: window.navigator.userAgent,
-};
-
-function setNavigatorSnapshot({
-  platform,
-  userAgent,
-}: {
-  platform: string;
-  userAgent: string;
-}) {
-  Object.defineProperty(window.navigator, "platform", {
-    configurable: true,
-    value: platform,
-  });
-  Object.defineProperty(window.navigator, "userAgent", {
-    configurable: true,
-    value: userAgent,
-  });
-}
-
 function mockLatestReleaseAssets(
   assets: Array<{ browser_download_url: string; name: string }>
 ) {
@@ -910,15 +744,4 @@ function mockLatestReleaseAssets(
     json: async () => ({ assets }),
     ok: true,
   })) as unknown as typeof fetch;
-}
-
-function restoreNavigatorSnapshot() {
-  Object.defineProperty(window.navigator, "platform", {
-    configurable: true,
-    value: originalNavigatorState.platform,
-  });
-  Object.defineProperty(window.navigator, "userAgent", {
-    configurable: true,
-    value: originalNavigatorState.userAgent,
-  });
 }

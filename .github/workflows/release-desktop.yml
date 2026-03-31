@@ -56,14 +56,6 @@ jobs:
             artifact_name: desktop-release-macos-arm64
             label: macOS arm64
             os: macos-latest
-          - artifact_glob: apps/desktop/release-artifacts/*
-            artifact_name: desktop-release-linux-x64
-            label: Linux x64
-            os: ubuntu-latest
-          - artifact_glob: apps/desktop/release-artifacts/*
-            artifact_name: desktop-release-windows-x64
-            label: Windows x64
-            os: windows-latest
     name: Build ${{ matrix.label }}
     steps:
       - name: Check out repository
